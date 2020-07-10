@@ -1,0 +1,204 @@
+% arara: latex: {draft: yes}
+% arara: latex: {draft: yes}
+% arara: biber
+% arara: makeindex
+% arara: latex
+% arara: dvips
+% arara: ps2pdf
+% arara: clean: { files:[PSTricks.bib,pst2pdf-doc.out, pst2pdf-doc.ps, pst2pdf-doc.toc,pst2pdf-doc.log,pst2pdf-doc.ind,pst2pdf-doc.aux, pst2pdf-doc.bbl, pst2pdf-doc.bcf, pst2pdf-doc.blg,pst2pdf-doc.dvi,pst2pdf-doc.idx,pst2pdf-doc.ilg,pst2pdf-doc.run.xml] }
+\documentclass[11pt,english,BCOR=10mm,DIV=12,bibliography=totoc,parskip=false,headings=small,
+    headinclude=false,footinclude=false,twoside]{pst-doc}
+
+\listfiles
+\let\Lfile\LFile
+\usepackage[utf8]{inputenc}
+\usepackage{pst-node}
+\let\pstnodeFV\fileversion
+\let\pstnodeFD\filedate
+\usepackage{biblatex}
+
+\addbibresource{\jobname.bib}
+
+\RequirePackage{xspace}
+\usepackage{pst-text,pst-grad}
+\let\pstFV\fileversion
+\DeclareFixedFont{\RM}{T1}{ptm}{b}{n}{4cm}
+\renewcommand\bgImage{\pscharpath[fillstyle=gradient,
+  gradbegin=red,gradend=blue,gradangle=-90]{\RM pst2pdf}}
+
+\lstset{language=PSTricks,basicstyle=\footnotesize\ttfamily}
+\def\DVI{\textsc{DVI}}
+\def\PDF{\textsc{PDF}}
+\def\gs{\textsc{Ghostscript}}
+%
+\begin{document}
+
+\title{\texttt{pst2pdf}}
+\subtitle{Running a PSTricks document with pdflatex;\\  \small v. 0.18}
+\author{Herbert Voß  \\ Pablo Gonz\'{a}lez Luengo}
+\docauthor{}
+\date{\today}
+\maketitle
+
+\tableofcontents
+
+\clearpage
+
+\section{Introduction}
+\PST\ as \PS\ related package uses the programming language \PS\ for internal
+calculations. This is an important advantage, because floating point arithmetic is no
+problem. Nearly all mathematical calculation can be done when running the \DVI-file
+with \gs. However, creating a \PDF\ file in a direct way with \Lprog{pdflatex} is
+not possible. \Lprog{pdflatex} cannot understand the \PS\ related stuff. 
+
+Instead of running \Lprog{pdflatex} one can use the \Lprog{perl} \emph{script} \Lprog{pst2pdf}, it extracts
+all \PST\ related code into single documents with the same preamble as the original
+main document.
+
+The \nxLprog{pst2pdf} \emph{script} runs document, clips all whitespace around the
+image and creates a \Lext{pdf} images of the \PST\ related code. 
+
+In a last run which is the \Lprog{pdflatex} the \PST\ code in the
+main document is replaced by the created images.
+
+\section{Requirements}
+\subsection{Programs needed}
+\nxLprog{pst2pdf} needs a latest version \Lprog{Ghostscript} (9.14), \Lprog{perl} (>=5.18), \Lprog{pdf2svg}, \Lprog{pdftoppm} and \Lprog{pdftops}
+(from \Lprog{poppler-utils} or \Lprog{xpdf-utils}) for the process file. If you need a create .pdf images whitout \Lprog{Ghostscript}, use single mode (see \ref{single}).
+
+\subsection{Preparating file}
+The script scan the file for \Lenv{pspicture} and \Lenv{postscript} environments,
+which are then taken with its contents from the main file to create stand alone documents
+with the same preamble as the main document. The \Lenv{pspicture} environment can be nested,
+the \Lenv{postscript} one not! But it can contain an environment \Lenv{pspicture}, but not vice versa.
+The \Lenv{postscript} environment should always be used, when there is some code before a \Lenv{pspicture}
+environment or for some code which is not inside of a \Lenv{pspicture} environment.
+
+\nxLprog{pst2pdf} delete al lines contains \PST\ package before last run, if you need delete other \PST\ code in preamble use:
+
+\begin{verbatim}
+%CleanPST
+pstricks code	
+%CleanPST
+\end{verbatim}
+
+\section{Environments support}
+\nxLprog{pst2pdf} support fourth environments in default and single way:
+
+\vspace{10pt}
+\begin{minipage}[c]{0.25\textwidth}
+\begin{verbatim}
+\pspicture*
+\psset{...}
+pstricks code	
+\endpspicture
+\end{verbatim}
+\end{minipage}
+\begin{minipage}[c]{0.25\textwidth}
+\begin{verbatim}
+\begin{pspicture}
+\psset{...}
+pstricks code	
+\end{pspicture}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}[c]{0.25\textwidth}
+\begin{verbatim}
+\begin{pspicture*}
+\psset{...}
+pstricks code	
+\end{pspicture*}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}[c]{0.25\textwidth}
+\begin{verbatim}
+\begin{postscript}
+\psset{...}
+pstricks code	
+\end{postscript}
+\end{verbatim}
+\end{minipage}
+
+\vspace{10pt}
+Note: When using the default mode, images are created using \Lprog{Ghostscript} and \LPack{preview} package, in this case, it is not necessary 
+to write \Lenv{psset} into \PST\ environment.
+\newpage
+\section{Running the script}
+\subsection{Default mode}
+The general syntax for the \Lprog{perl} \emph{script} is simple:
+
+\begin{BDef}
+\nxLprog{perl} \nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{--options}
+\end{BDef}
+
+For \TeX Live users:
+
+\begin{BDef}
+\nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{--options}
+\end{BDef}
+
+In this way \nxLprog{pst2pdf} creates a new file called \Larg{file-pst.tex} and copy all \Lenv{pspicture} 
+and \Lenv{postscript} environments, then processed and create file-pdf.pdf and file-fig-1.pdf, file-fig-2.pdf, file-fig-\dots.pdf and file-fig-1.tex, file-fig-2.tex, file-fig-\dots.tex for all \Lenv{pspicture} and \Lenv{postscript} using \nxLprog{Ghostscript}.
+\subsection{Single mode}
+\label{single}
+If you do not have \nxLprog{Ghostscript} use the option \Loption{-np,---single} in this mode, the files are processed separately (take a more time to create images files). For example:
+
+\begin{BDef}
+\nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{---single}
+\end{BDef}
+
+create file-pdf.pdf and file-fig-1.pdf, file-fig-2.pdf, file-fig-\dots.pdf and file-fig-1.tex, file-fig-2.tex, file-fig-\dots.tex for all \Lenv{pspicture} and \Lenv{postscript} environments (see \ref{options}).
+
+\section{Options}
+\label{options}
+The options listed in Table~\ref{perloptions} refer only to the \emph{script} and not the \LaTeX\ file.
+
+\begin{table}[htp]
+\caption{Optional arguments for \nxLprog{pst2pdf}}\label{perloptions}
+\begin{tabularx}{\linewidth}{@{} l l >{\ttfamily}l X @{}}\\\toprule
+\emph{name} & \emph{values} & \textrm{\emph{default}} & \emph{description}\\\midrule
+\Loption{-h,---help}     & boolean & 1        & print help and exit.\\
+\Loption{-l,---license}  & boolean & 0        & print license and exit.\\
+\Loption{-v,---version}  & boolean & 1     & print version and exit.\\
+\Loption{-m,---margins}  & literal & 1   & margins for pdfcrop (in bp).\\
+\Loption{-d,---dpi}      & integer & 300      & the dots per inch for a created \Lext{ppm} file.\\
+\Loption{-j,---jpg}      & boolean & 0        & creates \Lext{jpg} images (need \Lprog{Ghostscript}).\\
+\Loption{-p,---png}      & boolean & 0        & creates \Lext{png} images (need \Lprog{Ghostscript}).\\
+\Loption{-e,---eps}      & boolean & 0        & creates \Lext{eps} images (need \Lprog{pdftops}).\\
+\Loption{-s,---svg}      & boolean & 0        & creates \Lext{ppm} images (need \Lprog{pdf2svg}).\\
+\Loption{-P,---ppm}      & boolean & 0        & creates \Lext{ppm} images (need \Lprog{pdftoppm}).\\
+\Loption{-c,---clear}    & boolean & 0        & delete all temporary files.\\
+\Loption{-a,---all}      & boolean & 0        & generte all images type and clear.\\
+\Loption{-x,---xetex}    & boolean & 0        & using \Lprog{xelatex} instead of \Lprog{latex} for process.\\
+\Loption{-np,---single}   & boolean & 0        & create images type (whitout Ghostscript).\\
+\Loption{-ni,---noimages} & boolean & 0    		& generate file-pdf.tex, but no images.\\
+\Loption{-ns,---nosource} & boolean & 0    		& delte all source for images.\\
+\Loption{---imgdir} & literal & images/  & the directory for the created images.\\
+\Loption{---ignore} & literal & other   & skip other verbatim environment.\\
+\Loption{---Verbose}  & boolean & 1        & for a long \nxLprog{pst2pdf} log.\\
+\Loption{---bibtex}   & boolean & 0           & runs \Lprog{bibtex}.\\
+\Loption{---bibtex}   & boolean & 0          & runs \Lprog{biber} if a file with extension \Lext{bcf} exists. \\\bottomrule
+\end{tabularx}
+\end{table}
+
+For Help in command line use:
+
+\begin{BDef}
+\nxLprog{pst2pdf} \OptArg*{--help}
+\end{BDef}
+
+\section{Other image format}
+If you need to create other image formats use \nxLprog{pst2pdf}, move to images dir and use 
+\nxLprog{mogrify} command (from \Lprog{ImageMagick}), for examples:\\
+
+\begin{BDef} 
+\nxLprog{mogrify} -format tiff \OptArg*{*.ppm} 
+\end{BDef} 
+generate \Lext{tiff} images files.
+%\newpage
+\clearpage
+\nocite{*}
+\printbibliography
+
+\printindex
+\end{document}

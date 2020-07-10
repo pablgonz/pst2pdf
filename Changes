@@ -1,0 +1,33 @@
+pst2pdf.pl --------
+0.18  2017-10-04  - fix typos in the code comments
+0.17  2017-09-11  - fix escape character in regex
+0.16  2014-09-14  - using gs for split pdf (no more pdftk)
+                  - support package pst-exa for examples
+		  - adding svg image support
+		  - ignore inline verbatim 
+0.15  2013-06-16  - adding short options for command line
+                  - create png and jpg files in Linux and Windows
+		  - pass options to ps2pdf
+0.14  2013-02-27  - suport xelatex and -help from command line
+0.13  2011-12-12  - some more improvements to the code
+0.12  2011-01-19  - new optional arguments for running
+                    bibtex or biber
+0.11  2010-10-03  - use graphicspath instead of $imageDir to
+                    allow working with Windows
+                  - test for pst-exa to write \psset in the
+                    pdf file
+0.10  2010-01-04  - allow using the package pst-exa
+0.09  2009-10-01  - allow pspicture*
+0.08  2009-08-28  - test for png files (only for Linux)
+0.07  2009-07-24  - fix bug with \begin{postscript} and following
+                    pspicture environment
+                  - add some more documentation
+0.06  2007-08-28  - fix bug with \begin{pspicture} and \pspicture
+0.05  2007-07-05  - allow different extensions for the source file
+                    e.g. tex, ltx
+		  - ignore verbatim environment
+		  - better log file support
+0.04  2007-07-04  - allow all \begin ..\end sequences anywhere 
+                    in a line, see testcase 
+0.03  2007-06-21  - fix nested environments 
+0.02  2007-06-20  - first (public) version
