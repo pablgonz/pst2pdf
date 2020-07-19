@@ -1,13 +1,16 @@
 pst2pdf.pl --------
+0.19  2020-10-04  - Add new options fix typos in the code comments
+                  - Remove deprecate code
+                  - Remove unused options
 0.18  2017-10-04  - fix typos in the code comments
 0.17  2017-09-11  - fix escape character in regex
 0.16  2014-09-14  - using gs for split pdf (no more pdftk)
                   - support package pst-exa for examples
-		  - adding svg image support
-		  - ignore inline verbatim 
+                  - adding svg image support
+                  - ignore inline verbatim
 0.15  2013-06-16  - adding short options for command line
                   - create png and jpg files in Linux and Windows
-		  - pass options to ps2pdf
+                  - pass options to ps2pdf
 0.14  2013-02-27  - suport xelatex and -help from command line
 0.13  2011-12-12  - some more improvements to the code
 0.12  2011-01-19  - new optional arguments for running
@@ -25,9 +28,9 @@ pst2pdf.pl --------
 0.06  2007-08-28  - fix bug with \begin{pspicture} and \pspicture
 0.05  2007-07-05  - allow different extensions for the source file
                     e.g. tex, ltx
-		  - ignore verbatim environment
-		  - better log file support
-0.04  2007-07-04  - allow all \begin ..\end sequences anywhere 
-                    in a line, see testcase 
-0.03  2007-06-21  - fix nested environments 
+                  - ignore verbatim environment
+                  - better log file support
+0.04  2007-07-04  - allow all \begin ..\end sequences anywhere
+                    in a line, see testcase
+0.03  2007-06-21  - fix nested environments
 0.02  2007-06-20  - first (public) version
