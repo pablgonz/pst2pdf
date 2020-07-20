@@ -58,6 +58,7 @@ my $runbiber  = 0;      # 1->runs biber and sets $runbibtex=0
 my $all = 0;            # 1->create all images and files for type
 my $xetex  = 0;         # 1->Using (Xe)LaTeX for compilation.
 my $luatex = 0;         # 1->Using dvilualatex for compilation.
+my $latexmk = 0;        # 1->Using latexmk for compiler output file.
 my $arara;              # 1->Using arara for compiler output file.
 my $nosource = 0;       # Delete TeX source for images
 my $srcenv;             # write only source code of environments
@@ -98,7 +99,7 @@ sub errorUsage {
 }
 
 ### Extended error messages
-sub exterr () {
+sub exterr {
     chomp(my $msg_errno = $!);
     chomp(my $msg_extended_os_error = $^E);
     if ($msg_errno eq $msg_extended_os_error) {
@@ -319,7 +320,8 @@ my $result=GetOptions (
     'np|single|noprew'   => \$noprew,   # flag
     'bibtex'             => \$runbibtex,# flag
     'biber'              => \$runbiber, # flag
-    'arara'              => \$arara, # flag
+    'arara'              => \$arara,    # flag
+    'latexmk'            => \$latexmk,  # flag
     'srcenv'             => \$srcenv,   # flag
     'nopdf'              => \$nopdf,    # flag
     'zip'                => \$zip,      # flag
@@ -464,7 +466,7 @@ sub find_ghostscript () {
     }
 }
 
-sub SearchRegistry () {
+sub SearchRegistry {
     my $found = 0;
     # The module Win32::TieRegistry not aviable in cygwin/msys
     eval 'use Win32::TieRegistry qw|KEY_READ REG_SZ|';
@@ -552,7 +554,7 @@ sub SearchRegistry () {
 ### This part is only necessary if you're using Git on windows and don't
 ### have gs configured in the PATH. Git for windows don't have a Win32::TieRegistry
 ### and this module is not supported in the current versions.
-sub Searchbyregquery (){
+sub Searchbyregquery {
     my $found = 0;
     my $gs_regkey;
     my $opt_reg = '//s //v';
@@ -659,6 +661,9 @@ close $INPUTfile;
 
 ### Set tmp random number for <name-fig-tmp>
 my $tmp = int(rand(10000));
+
+### Set wraped environments for extraction $wrapping
+my $wrapping = "$scriptname$tmp";
 
 ### Identification message in terminal
 print $title;
@@ -1036,8 +1041,8 @@ Log('The environments that will be searched for extraction:');
 my @real_extract_env = grep !/nopreview/, @extract_env;
 Logarray(\@real_extract_env);
 
-### Create a regex to extract environments
-my $environ = join q{|}, map { quotemeta } sort { length $a <=> length $b } @extract_env;
+### Create a regex to extract environments @extr_env_tmp; @extract_env;
+my $environ = join q{|}, map { quotemeta } sort { length $a <=> length $b } @extr_env_tmp;
 $environ = qr/$environ/x;
 my $extr_tmp = qr {
                     (
@@ -1070,37 +1075,45 @@ while ($document =~ /$verb_wrt | $verb_std /pgmx) {
     pos ($document) = $pos_inicial + length $encontrado;
 }
 
-### Now split document
-my ($preamble,$bodydoc,$enddoc) = $document =~ m/\A (.+?) (\\begin\{document\} .+?)(\\end\{document\}.*)\z/msx;
+### Now match preview environment
+my @env_preview = $document =~ m/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+                                (\\begin\{preview\}.+?\\end\{preview\})/gmsx;
+
+### Convert preview environment
+if (@env_preview) {
+    my $preNo = scalar @env_preview;
+    Log("Found $preNo preview environments in $name$ext");
+    Log("Pass all preview environments to \\begin{nopreview}\%TMP$tmp ... \\end{nopreview}\%TMP$tmp");
+    $document =~ s/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+                  (?:(\\begin\{|\\end\{))(preview\})/$1no$2\%TMP$tmp/gmsx;
+}
 
 ### Internal dtxtag mark for verbatim environments
 my $dtxverb = "verbatim$tmp";
 
 Log("Pass verbatim write environments to %<*$dtxverb> ... %</$dtxverb>");
-$bodydoc  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+$document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-               ($verb_wrt)/\%<\*$dtxverb>\n$1\n\%<\/$dtxverb>/gmsx;
-$preamble =~ s/($verb_wrt)/\%<\*$dtxverb>\n$1\n\%<\/$dtxverb>/gmsx;
+               ($verb_wrt)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
 Log("Pass verbatim environments to %<*$dtxverb> ... %</$dtxverb>");
-$bodydoc  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+$document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-               ($verb_std)/\%<\*$dtxverb>\n$1\n\%<\/$dtxverb>/gmsx;
-$preamble =~ s/($verb_std)/\%<\*$dtxverb>\n$1\n\%<\/$dtxverb>/gmsx;
+               ($verb_std)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
 Log("Pass %CleanPST ... %CleanPST to %<*remove$tmp> ... %</remove$tmp>");
-$preamble =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+$document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               ^(?:%CleanPST) (.+?) (?:%CleanPST)/\%<\*remove$tmp>$1\%<\/remove$tmp>/gmsx;
 
 ### Check plain TeX syntax [skip PSTexample]
 Log('Convert plain \pspicture to LaTeX syntax');
-$bodydoc =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+$document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
               \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
               \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
               \\pspicture(\*)?(.+?)\\endpspicture/\\begin\{pspicture$1\}$2\\end\{pspicture$1\}/gmsx;
 Log('Convert plain \psgraph to LaTeX syntax');
-$bodydoc =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+$document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
               \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
               \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
@@ -1109,7 +1122,7 @@ $bodydoc =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
 ### Force mode for pstricks/psgraph
 if ($force) {
     Log('Capture \psset{...} for pstricks environments [force mode]');
-    $bodydoc =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+    $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                   \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                   \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
                   \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
@@ -1118,14 +1131,22 @@ if ($force) {
                      (?:\\psset\{(?:\{.*?\}|[^\{])*\}.+?)?  # if exist ...save
                      \\begin\{(?<env> pspicture\*?| psgraph)\} .+? \\end\{\k<env>\}
                   )
-                /\\begin\{preview\}\n$+{code}\n\\end\{preview\}/gmsx;
+                /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
 }
 
-### Pass all pstricks environments in body \begin{preview} ... \end{preview}
-Log('Pass all pstricks environments to \begin{preview} ... \end{preview}');
-$bodydoc =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+Log("Pass all postscript environments to \\begin{$wrapping} ... \\end{$wrapping}");
+$document =~ s/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+               \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+              (?:\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
+                 (?<code>.+?)
+                 (?:\\end\{postscript\})
+              /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
+
+Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
+$document =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
               \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-              ($extr_tmp)/\\begin\{preview\}\n$1\n\\end\{preview\}/gmsx;
+              \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
+              ($extr_tmp)/\\begin\{$wrapping\}$1\\end\{$wrapping\}/gmsx;
 
 ########################################################################
 #  All environments are now classified:                                #
@@ -1133,9 +1154,8 @@ $bodydoc =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
 #  Verbatim's       ->    %<\*$dtxverb> ... <\/$dtxverb>               #
 ########################################################################
 
-### Pass \begin{(no)preview} ... \end{(no)preview} to \START{(no)preview} ... \STOP{(no)preview}
-$bodydoc =~ s/\\begin\{((no)?preview)\}/\\START\{$1\}/gmsx;
-$bodydoc =~ s/\\end\{((no)?preview)\}/\\STOP\{$1\}/gmsx;
+### Now split document
+my ($preamble,$bodydoc,$enddoc) = $document =~ m/\A (.+?) (\\begin\{document\} .+?)(\\end\{document\}.*)\z/msx;
 
 ### Hash for reverse changes for extract and output file
 my %changes_out = (
@@ -1157,41 +1177,16 @@ my %changes_out = (
     );
 
 ### We restore the changes in body of environments and dtxverb
-my @lineas = split /\n/, $bodydoc;
-my $NEWDEL;
-for (@lineas) {
-    %replace = (%changes_out);
-    $find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %replace;
-    if (/\\START\{((no)?preview)(?{ $NEWDEL = "\Q$^N" })\}/ .. /\\STOP\{$NEWDEL\}/) {
-        s/($find)/$replace{$1}/msgx;
-    }
-    if (/\%<\*($dtxverb)(?{ $NEWDEL = "\Q$^N" })>/ .. /\%<\/$NEWDEL>/) {
-        s/($find)/$replace{$1}/msgx;
-    }
-}
-$bodydoc = join "\n", @lineas;
-
-### We restore the changes in preamble
-while ($preamble =~ /\%<\*$dtxverb>(.+?)\%<\/$dtxverb>/pgmsx) {
-    %cambios = (%changes_out);
-    my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
-    my  $encontrado = ${^MATCH};
-    while (my($busco, $cambio) = each %cambios) {
-        $encontrado =~ s/\Q$busco\E/$cambio/msxg;
-    }
-    substr $preamble, $pos_inicial, $pos_final-$pos_inicial, $encontrado;
-    pos ($preamble) = $pos_inicial + length $encontrado;
-}
-
-### We put back the environments with a tmp mark :)
-$bodydoc  =~ s/\\START\{((no)?preview)\}/\\begin\{$1\}\%$tmp/gmsx;
-$bodydoc  =~ s/\\STOP\{((no)?preview)\}/\\end\{$1\}\%$tmp/gmsx;
+%replace = (%changes_out);
+$find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %replace;
+$bodydoc  =~ s/($find)/$replace{$1}/g;
+$preamble =~ s/($find)/$replace{$1}/g;
 
 ### First search PSTexample environment for extract
 my $BE = '\\\\begin\{PSTexample\}';
 my $EE = '\\\\end\{PSTexample\}';
 
-my @exa_extract = $bodydoc =~ m/(?:\\begin\{preview\}%$tmp\n)(\\begin\{PSTexample\}.+?\\end\{PSTexample\})/gmsx;
+my @exa_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})(\\begin\{PSTexample\}.+?\\end\{PSTexample\})/gmsx;
 my $exaNo = scalar @exa_extract;
 
 my $envEXA;
@@ -1218,7 +1213,7 @@ if ($exaNo!=0) {
     # Add [graphic={[...]...}] to \begin{PSTexample}[...]
     Log('Append [graphic={[...]...}] to \begin{PSTexample}[...]');
     $exaNo = 1;
-    while ($bodydoc =~ /\\begin\{preview\}%$tmp\n\\begin\{PSTexample\}(\[.+?\])?/gsm) {
+    while ($bodydoc =~ /\\begin\{$wrapping\}(\s*)?\\begin\{PSTexample\}(\[.+?\])?/gsm) {
         my $swpl_grap = "graphic=\{\[scale=1\]$imgdir/$name-fig-exa";
         my $corchetes = $1;
         my ($pos_inicial, $pos_final) = ($-[1], $+[1]);
@@ -1232,19 +1227,19 @@ if ($exaNo!=0) {
     }
     continue { $exaNo++; }
     Log('Pass PSTexample environments to \begin{nopreview} ... \end{nopreview}');
-    $bodydoc =~ s/\\begin\{preview\}%$tmp\n
+    $bodydoc =~ s/\\begin\{$wrapping\}
                     (?<code>\\begin\{PSTexample\} .+? \\end\{PSTexample\})
-                  \n\\end\{preview\}%$tmp
-                 /\\begin\{nopreview\}%$tmp\n$+{code}\n\\end\{nopreview\}%$tmp/gmsx;
+                  \\end\{$wrapping\}
+                 /\\begin\{nopreview\}%$tmp$+{code}\\end\{nopreview\}%$tmp/gmsx;
 }
 
 ### Reset exaNo
 $exaNo = scalar @exa_extract;
 
-my $BP = "\\\\begin\{preview\}%$tmp";
-my $EP = "\\\\end\{preview\}%$tmp";
+my $BP = "\\\\begin\{$wrapping\}";
+my $EP = "\\\\end\{$wrapping\}";
 
-my @env_extract = $bodydoc =~ m/(?<=$BP)(.+?)(?=$EP)/gms;
+my @env_extract = $bodydoc =~ m/(\\begin\{$wrapping\}.+?\\end\{$wrapping\})/gmsx;
 my $envNo = scalar @env_extract;
 
 my $envSTD;
@@ -1388,13 +1383,13 @@ else {
     $preamout = $preamout."\\pagestyle\{empty\}\n";
 }
 
-#### Remove wraped postscript environments (pst-pdf, auto-pst-pdf, auto-pst-pdf-lua)
-Log('Convert postscript environments to \begin{preview} ... \end{preview} for standalone files');
-$tmpbodydoc =~ s/(?:$BP)(?:\n\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
-                 (?<code>.+?)
-                 (?:\\end\{postscript\}\n)
-                 (?:$EP)
-               /\\begin\{preview\}%$tmp$+{code}\\end\{preview\}%$tmp/gmsx;
+##### Remove wraped postscript environments (pst-pdf, auto-pst-pdf, auto-pst-pdf-lua)
+#Log('Convert postscript environments to \begin{preview} ... \end{preview} for standalone files');
+#$tmpbodydoc =~ s/(?:$BP)(?:\n\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
+                 #(?<code>.+?)
+                 #(?:\\end\{postscript\}\n)
+                 #(?:$EP)
+               #/\\begin\{preview\}%$tmp$+{code}\\end\{preview\}%$tmp/gmsx;
 
 ### We created a preamble for the individual files
 my $sub_prea = "$atbeginout$preamout".'\begin{document}';
@@ -1465,7 +1460,9 @@ my $previewpkg = <<"EXTRA";
 \\PassOptionsToPackage\{inactive\}\{pst-pdf\}%
 \\AtBeginDocument\{%
 \\RequirePackage\[inactive\]\{pst-pdf\}%
+\\newenvironment\{$wrapping\}[1][]\{\\ignorespaces\}\{\}%
 \\RequirePackage\[${opt_prew}active,tightpage\]\{preview\}%
+\\PreviewEnvironment\{$wrapping\}
 \\renewcommand\\PreviewBbAdjust\{-60pt -60pt 60pt 60pt\}\}%
 EXTRA
 
@@ -1479,10 +1476,18 @@ EXTRA
 ### Remove %<*$dtxverb> ... %</$dtxverb> in bodyout and preamout
 $tmpbodydoc =~ s/\%<\*$dtxverb>\s*(.+?)\s*\%<\/$dtxverb>/$1/gmsx;
 $preamout   =~ s/\%<\*$dtxverb>\s*(.+?)\s*\%<\/$dtxverb>/$1/gmsx;
+$tmpbodydoc =~ s/\\begin\{nopreview\}\%$tmp
+                    (?<code> .+?)
+                  \\end\{nopreview\}\%$tmp
+                /\\begin\{nopreview\}\n$+{code}\n\\end\{nopreview\}/gmsx;
+$tmpbodydoc =~ s/\\begin\{$wrapping\}
+                    (?<code>.+?)
+                  \\end\{$wrapping\}
+                /\\begin\{$wrapping\}\n$+{code}\n\\end\{$wrapping\}/gmsx;
 
 ### Reverse changes for temporary file with all env (no in -exa file)
 $tmpbodydoc =~ s/($find)/$replace{$1}/g;
-$tmpbodydoc =~ s/(\%$tmp)//g;
+$tmpbodydoc =~ s/(\%TMP$tmp)//g;
 $preamout   =~ s/($find)/$replace{$1}/g;
 $preamout   =~ s/^(?:\%<\*remove$tmp>)(.+?)(?:\%<\/remove$tmp>)/%CleanPST$1%CleanPST/gmsx;
 $atbeginout =~ s/($find)/$replace{$1}/g;
@@ -1537,7 +1542,7 @@ if ($STDenv) {
     open my $allstdenv, '>', "$name-fig-$tmp$ext";
         if ($noprew) {
             my @env_extract;
-            while ($tmpbodydoc =~ m/(?:\\begin\{preview\})(?<env_src>.+?)(?:\\end\{preview\})/gms) {
+            while ($tmpbodydoc =~ m/(?:\\begin\{$wrapping\})(?<env_src>.+?)(?:\\end\{$wrapping\})/gms) {
                 push @env_extract,$+{'env_src'}."\\newpage\n";
             }
             Log("Adding packages to $name-fig-$tmp$ext");
@@ -1758,7 +1763,7 @@ my %tmpreplace = (
 
 my $findtmp     = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %tmpreplace;
 my $preambletmp = $preamble;
-@lineas = split /\n/, $preambletmp;
+my @lineas = split /\n/, $preambletmp;
 
 ### We remove the commented lines
 s/\%.*(?:[\t ]*(?:\r?\n|\r))?+//msg foreach @lineas;
@@ -1852,7 +1857,7 @@ if ($findgraphicx eq 'true') {
     # Compiling file
     RUNOSCMD("$compiler $write18 -interaction=batchmode", "$name-fig-$tmp$ext >$null", 'only');
     # Restore arara compiler
-    if ($opts_cmd{compiler}{arara}) { $compiler = 'arara'; }
+    if ($arara) { $compiler = 'arara'; }
     Log("Search graphicx package in $name-fig-$tmp.log");
     open my $LaTeXlog, '<', "$name-fig-$tmp.log";
         {
@@ -1911,9 +1916,14 @@ my $out_file = "$preamble\n$bodydoc\n$enddoc";
 
 ### Clean \psset content in output file
 $out_file =~ s/\\begin\{nopreview\}\%$tmp.+?\\end\{nopreview\}\%$tmp(*SKIP)(*F)|
-                   \%<\*$dtxverb> .+? \%<\/$dtxverb>(*SKIP)(*F)|
-                   \\psset\{(?:\{.*?\}|[^\{])*\}(?:[\t ]*(?:\r?\n|\r))?+//gmsx;
-$out_file =~ s/\\begin\{nopreview\}\%$tmp\s*(.+?)\s*\\end\{nopreview\}\%$tmp/$1/gmsx;
+               \%<\*$dtxverb> .+? \%<\/$dtxverb>(*SKIP)(*F)|
+               \\psset\{(?:\{.*?\}|[^\{])*\}(?:[\t ]*(?:\r?\n|\r))?+//gmsx;
+$out_file =~ s/\\begin\{nopreview\}\%TMP$tmp\s*(.+?)\s*\\end\{nopreview\}\%TMP$tmp/$1/gmsx;
+
+$out_file =~ s/\\begin\{nopreview\}%$tmp
+               (?<code>\\begin\{PSTexample\} .+? \\end\{PSTexample\})
+               \\end\{nopreview\}%$tmp
+              /$+{code}/gmsx;
 
 ### Remove internal mark for verbatim and verbatim write environments
 $out_file =~ s/\%<\*$dtxverb>\s*(.+?)\s*\%<\/$dtxverb>/$1/gmsx;
@@ -1923,12 +1933,13 @@ $out_file =~ s/($find)/$replace{$1}/g;
 
 ### Write <output file>
 if (-e "$name-pdf$ext") {
-    Log("Rewriting the file $name-pdf$ext");
+    Log("Rewriting the file $name-pdf$ext in $workdir");
     Infocolor('Warning', "The file [$name-pdf$ext] already exists and will be rewritten");
 }
-else{ Infoline("Creating the file $name-pdf$ext"); }
-
-Log("Write the file $name-pdf$ext in $workdir");
+else{
+    Infoline("Creating the file $name-pdf$ext");
+    Log("Write the file $name-pdf$ext in $workdir");
+}
 open my $OUTfile, '>', "$name-pdf$ext";
     print {$OUTfile} $out_file;
 close $OUTfile;
@@ -1943,17 +1954,27 @@ if (!$norun) {
         $compiler     = 'lualatex';
         $msg_compiler = 'lualatex';
     }
+    if ($compiler eq 'arara') {
+        $compiler     = 'arara';
+        $msg_compiler = 'arara';
+    }
     Log("Compiling the file $name-pdf$ext using [$msg_compiler]");
     print "Compiling the file $name-pdf$ext using ", color('magenta'), "[$msg_compiler]\r\n",color('reset');
     RUNOSCMD("$compiler $opt_compiler", "$name-pdf$ext",'show');
-    # Compiling <output file> using dvips>ps2pdf
-    if ($opts_cmd{compiler}{dvips}) {
-        RUNOSCMD("dvips $quiet -Ppdf", "$name-pdf.dvi",'show');
-        RUNOSCMD("ps2pdf -sPDFSETTINGS=prepress -sAutoRotatePages=None", "$name-pdf.ps $name-pdf.pdf", 'show');
+    # makeindex
+    if (-e "$name-pdf.idx" && !$arara) {
+        RUNOSCMD("makeindex", "$name-pdf.idx",'show');
+        RUNOSCMD("$compiler $opt_compiler", "$name-pdf$ext",'show');
     }
-    # Compiling <output file> using latex>dvipdfmx
-    if ($opts_cmd{compiler}{dvipdf}) {
-        RUNOSCMD("dvipdfmx $quiet", "$name-pdf.dvi", 'show');
+    # biber
+    if ($runbiber && -e "$name-pdf.bcf" && !$arara) {
+        RUNOSCMD("biber", "$name-pdf",'show');
+        RUNOSCMD("$compiler $opt_compiler", "$name-pdf$ext",'show');
+    }
+    # bibtex
+    if ($runbibtex && -e "$name-pdf.aux" && !$arara) {
+        RUNOSCMD("bibtex", "$name-pdf",'show');
+        RUNOSCMD("$compiler $opt_compiler", "$name-pdf$ext",'show');
     }
 }
 
@@ -2076,124 +2097,22 @@ Log("The execution of $scriptname has been successfully completed");
 __END__
 
 Falta
-0. Reescribir --help (esta muy ordinario)
-1. Validar las opciones pasadas por la línea de comadnos
+00. Mejorar el nombre de las variables internas (mejor lectura)
+0. Ajustar las expresione regulares en el archivo de salida (conservar preview por ejemplo)
+1. Añadir --latexmk -lualatex "--shell-escape %O %S" $name-pdf$ext
 2. Logear TODAS las opciones
-3. Eliminar la opcion clear (ya no es necesaria)
-4. Añadir el soporte para "arara" en el archivo de salida
-5. Quitar bibtex y biber (no son útiles, junto a makeidx)
-6. Documentar TODOS los cambios
+3. Reescribir --help
+4. Hacer fake la opción --clear (ya no es necesaria)
+5. Documentar TODOS los cambios
 
-
-open  my $LOGfile,'>', "$tempDir/$name.plog"; # our own log file
-    LOG ("Parameters:");
-    LOG ("==> imageDir  = $imageDir");
-    LOG ("==> dpi       = $dpi");
-    LOG ("==> tempDir   = $tempDir");
-    LOG ("==> Verbose   = $verbose");
-    LOG ("==> clear     = $clear");
-    LOG ("==> noImages  = $norun");
-    LOG ("==> noSource  = $nosource");
-    LOG ("==> nopreview = $nopreview");
-    LOG ("==> runBibTeX = $runbibtex");
-    LOG ("==> runBiber  = $runbiber");
-    LOG ("==> ppm       = $ppm");
-    LOG ("==> eps       = $eps");
-    LOG ("==> jpg       = $jpg");
-    LOG ("==> png       = $png");
-    LOG ("==> svg       = $svg");
-    LOG ("==> xetex     = $xetex");
 
 if ($runbibtex && $runbiber) {
     LOG ("!!! you cannot run BibTeX and Biber at the same document ...");
     LOG ("!!! Assuming to run Biber");
   $runbibtex = 0;
 }
-if ($ppm) {
-  LOG ("Generate .ppm files ...");
-  $ppm = 1;
-}
-if ($eps) {
-  LOG ("Generate .eps files ...");
-  $eps = 1;
-}
-if ($jpg) {
-  LOG ("Generate .jpg files ...");
-    $jpg = 1;
-}
-if ($png) {
-  LOG ("Generate .png files ...");
-    $png = 1;
-}
-if ($svg) {
-  LOG ("Generate .svg files ...");
-    $svg = 1;
-}
+
 if ($all) {
   LOG ("Generate images eps/pdf/files and clear...");
    $eps =$ppm=$jpg=$png=$svg=$clear = 1;
 }
-if ($nopreview) {
-  LOG ("nopreview mode generate images files ...");
-  $nopreview= 1;
-}
-if ($xetex) {
-  LOG ("Compiling using XeLaTeX ...");
-  $xetex=1;
-}
-if ($norun ) {
-  LOG ("no create images");
-    $nopreview= 0;
- }
-if ($nosource) {
-  LOG ("Delete all source files");
-    $nosource= 1;
- }
-
-
-my $runAgain = 0;
-
-if($xetex){ # xelatex mode
-if ($norun){
-    print "The file $pdfname-pdf$ext are created (Xe)LaTeX\n";
-    }
-else{
-    system("xelatex -interaction=batchmode $tempDir/$pdfname-pdf");
-    print "Done, compiled $pdfname-pdf$ext using (Xe)LaTeX\n";
-    }
-    }
-else{ #pdflatex mode
-if ($norun){
-    print "The file $pdfname-pdf$ext are created (pdf)LaTeX\n";
-    }
-else{
-    system("pdflatex -interaction=batchmode $tempDir/$pdfname-pdf$ext");
-    print "Done, compiled $pdfname-pdf$ext using (pdf)LaTeX\n";
-    }
-}
-
-if (-e "$tempDir/$pdfname-pdf.idx") {
-    system("makeindex $tempDir/$pdfname-pdf.idx");
-    $runAgain++;
-    }
-if ($runbibtex && -e "$tempDir/$pdfname-pdf.aux") {
-    system("bibtex $tempDir/$pdfname-pdf");
-    $runAgain++;
-    }
-if ($runbiber && -e "$tempDir/$pdfname-pdf.bcf") {
-    system("biber $tempDir/$pdfname-pdf");
-    $runAgain++;
-    }
-if ($runAgain){
-    if($xetex){
-    system("xelatex -interaction=batchmode $tempDir/$pdfname-pdf");
-    }
-    else{
-    system("pdflatex -interaction=batchmode $tempDir/$pdfname-pdf");
-    }
-    }
-} #close sub run pdfTEX
-
-__END__
-
-
