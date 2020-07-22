@@ -641,6 +641,22 @@ if (defined $version) {
     exit 0;
 }
 
+### Set tmp random number for <name-fig-tmp>
+my $tmp = int(rand(10000));
+
+### Internal dtxtag mark for verbatim environments
+my $dtxverb = "verbatim$tmp";
+
+### Set wraped name for environment extraction
+my $wrapping = "$scriptname$tmp";
+Log("Set up the environment [$wrapping] to encapsulate the extraction");
+
+### Set vars for match/regex
+my $BP = "\\\\begin\{$wrapping\}";
+my $EP = "\\\\end\{$wrapping\}";
+my $BE = '\\\\begin\{PSTexample\}';
+my $EE = '\\\\end\{PSTexample\}';
+
 ### Define key = pdf for image format
 if (!$nopdf) {
     $opts_cmd{image}{pdf} = 1;
@@ -677,13 +693,6 @@ open my $inputfile, '<:crlf', "$name$ext";
             $ltxfile = <$inputfile>;
         }
 close $inputfile;
-
-### Set tmp random number for <name-fig-tmp>
-my $tmp = int(rand(10000));
-
-### Set wraped name for environment extraction
-my $wrapping = "$scriptname$tmp";
-Log("Set up the environment [$wrapping] to encapsulate the extraction");
 
 ### Identification message in terminal
 print $title;
@@ -1086,7 +1095,7 @@ Log('Making changes to verbatim/verbatim write environments before extraction');
 my %replace = (%extract_env, %preview_env, %changes_in, %document);
 my $find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %replace;
 
-### We go line by line and make the changes (/p for ${^MATCH})
+### We go line by line and make the changes [need /p for ${^MATCH}]
 while ($document =~ /$verb_wrt | $verb_std /pgmx) {
     my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
     my $encontrado = ${^MATCH};
@@ -1105,9 +1114,6 @@ if (@env_preview) {
     Log("Pass all preview environments to \\begin{nopreview}\%TMP$tmp ... \\end{nopreview}\%TMP$tmp");
     $document =~ s/(?:(\\begin\{|\\end\{))(preview\})/$1no$2\%TMP$tmp/gmsx;
 }
-
-### Internal dtxtag mark for verbatim environments
-my $dtxverb = "verbatim$tmp";
 
 Log("Pass verbatim write environments to %<*$dtxverb> ... %</$dtxverb>");
 $document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
@@ -1192,12 +1198,6 @@ my %changes_out = (
 $find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %replace;
 $bodydoc  =~ s/($find)/$replace{$1}/g;
 $preamble =~ s/($find)/$replace{$1}/g;
-
-### Set vars for match/regex
-my $BP = "\\\\begin\{$wrapping\}";
-my $EP = "\\\\end\{$wrapping\}";
-my $BE = '\\\\begin\{PSTexample\}';
-my $EE = '\\\\end\{PSTexample\}';
 
 ### First search PSTexample environment for extract
 my @exa_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})($BE.+?$EE)(?:\\end\{$wrapping\})/gmsx;
