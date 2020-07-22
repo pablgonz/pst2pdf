@@ -75,7 +75,6 @@ my $myverb = 'myverb' ; # internal \myverb macro
 my $gscmd;              # ghostscript executable name
 my $gray;               # gray scale ghostscript
 my $log      = 0;       # log file
-my $outfile  = 0;       # write output file
 my $PSTexa   = 0;       # run extract PSTexample environments
 my $STDenv   = 0;       # run extract pspicture/psfrag environments
 my %opts_cmd;           # hash to store Getopt::Long options
@@ -83,7 +82,7 @@ my %opts_cmd;           # hash to store Getopt::Long options
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $ident      = '$Id: pst2pdf.pl 119 2020-07-20 12:04:09Z herbert $';
+my $ident      = '$Id: pst2pdf.pl 119 2020-07-21 12:04:09Z herbert $';
 
 ### Log vars
 my $LogFile = "$scriptname.log";
@@ -370,6 +369,16 @@ s/^\s*(\=):?|\s*//mg foreach @verb_env_tmp;
 if (grep /(^\-|^\.).*?/, @verb_env_tmp) {
     Log('Error!!: Invalid argument for --ignore, some argument from list begin with -');
     errorUsage('Invalid argument for --ignore option');
+}
+
+### Check --arara and --latexmk option from command line
+if ($arara && $latexmk) {
+    errorUsage('Options --arara and --latexmk  are mutually exclusive');
+}
+
+### Check --biber and --bibtex option from command line
+if ($runbiber && $runbibtex) {
+    errorUsage('Options --biber and --bibtex  are mutually exclusive');
 }
 
 ### Make ENV safer, see perldoc perlsec
@@ -661,13 +670,13 @@ else {
 
 ### Read <input file> in memory
 Log("Read input file $name$ext in memory");
-open my $INPUTfile, '<:crlf', "$name$ext";
+open my $inputfile, '<:crlf', "$name$ext";
     my $ltxfile;
         {
             local $/;
-            $ltxfile = <$INPUTfile>;
+            $ltxfile = <$inputfile>;
         }
-close $INPUTfile;
+close $inputfile;
 
 ### Set tmp random number for <name-fig-tmp>
 my $tmp = int(rand(10000));
@@ -680,14 +689,12 @@ Log("Set up the environment [$wrapping] to encapsulate the extraction");
 print $title;
 
 ### Default environment to extract
-my @extr_tmp = qw (
+my @extractenv = qw (
     postscript pspicture psgraph PSTexample
     );
-my @extr_env_tmp;
-push @extr_env_tmp, @extr_tmp;
 
 ### Default verbatim environment
-my @verb_tmp = qw (
+my @iverb_env = qw (
     Example CenterExample SideBySideExample PCenterExample PSideBySideExample
     verbatim Verbatim BVerbatim LVerbatim SaveVerbatim PSTcode
     LTXexample tcblisting spverbatim minted listing lstlisting
@@ -695,16 +702,16 @@ my @verb_tmp = qw (
     demo sourcecode xcomment pygmented pyglist program programl
     programL programs programf programsc programt
     );
-push @verb_env_tmp, @verb_tmp;
+push @verb_env_tmp, @iverb_env;
 
 ### Default verbatim write environment
 my @verw_env_tmp;
-my @verbw_tmp = qw (
+my @iverbw_env = qw (
     scontents filecontents tcboutputlisting tcbexternal tcbwritetmp extcolorbox extikzpicture
     VerbatimOut verbatimwrite filecontentsdef filecontentshere filecontentsdefmacro
     filecontentsdefstarred filecontentsgdef filecontentsdefmacro filecontentsgdefmacro
     );
-push @verw_env_tmp, @verbw_tmp;
+push @verw_env_tmp, @iverbw_env;
 
 ########################################################################
 # One problem that can arise is the filecontents environment, this can #
@@ -764,25 +771,25 @@ my $braquet     = qr/ (?:\[)(.+?)(?:\]) /msx;
 my $no_corchete = qr/ (?:\[ .*? \])?    /msx;
 
 ### Array for capture new verbatim environments defined in input file
-my @new_verb = qw (
+my @cverb_env = qw (
     newtcblisting DeclareTCBListing ProvideTCBListing NewTCBListing
     lstnewenvironment NewListingEnvironment NewProgram specialcomment
     includecomment DefineVerbatimEnvironment newverbatim newtabverbatim
     );
 
 ### Regex to capture names for new verbatim environments from input file
-my $newverbenv = join q{|}, map { quotemeta} sort { length $a <=> length $b } @new_verb;
-$newverbenv = qr/\b(?:$newverbenv) $no_corchete $braces/msx;
+my $cverbenv = join q{|}, map { quotemeta} sort { length $a <=> length $b } @cverb_env;
+$cverbenv = qr/\b(?:$cverbenv) $no_corchete $braces/msx;
 
 ### Array for capture new verbatim write environments defined in input file
-my @new_verb_write = qw (
+my @cverb_env_w = qw (
     renewtcbexternalizetcolorbox renewtcbexternalizeenvironment
     newtcbexternalizeenvironment newtcbexternalizetcolorbox newenvsc
     );
 
 ### Regex to capture names for new verbatim write environments from input file
-my $newverbwrt = join q{|}, map { quotemeta} sort { length $a <=> length $b } @new_verb_write;
-$newverbwrt = qr/\b(?:$newverbwrt) $no_corchete $braces/msx;
+my $cverbenvw = join q{|}, map { quotemeta} sort { length $a <=> length $b } @cverb_env_w;
+$cverbenvw = qr/\b(?:$cverbenvw) $no_corchete $braces/msx;
 
 ### Regex to capture MINTED related environments
 my $mintdenv  = qr/\\ newminted $braces (?:\{.+?\})      /x;
@@ -803,22 +810,22 @@ my $filecheck = join q{}, @filecheck;
 Log("Search verbatim and verbatim write environments in $name$ext");
 
 ### Search new verbatim write names in <input file>
-my @newv_write = $filecheck =~ m/$newverbwrt/xg;
-if (@newv_write) {
+my @new_write_env = $filecheck =~ m/$cverbenvw/xg;
+if (@new_write_env) {
     Log("Found new verbatim write environments in $name$ext");
-    Logarray(\@newv_write);
-    push @verw_env_tmp, @newv_write;
+    Logarray(\@new_write_env);
+    push @verw_env_tmp, @new_write_env;
 }
 
-### Search new verbatim environments in <input file> (for)
-my @verb_input = $filecheck =~ m/$newverbenv/xg;
+### Search new verbatim environments in <input file>
+my @verb_input = $filecheck =~ m/$cverbenv/xg;
 if (@verb_input) {
     Log("Found new verbatim environments in $name$ext");
     Logarray(\@verb_input);
     push @verb_env_tmp, @verb_input;
 }
 
-### Search \newminted{$mintdenv}{options} in <input file>, need add "code" (for)
+### Search \newminted{$mintdenv}{options} in <input file>, need add "code"
 my @mint_denv = $filecheck =~ m/$mintdenv/xg;
 if (@mint_denv) {
     Log("Found \\newminted\{envname\} in $name$ext");
@@ -829,7 +836,7 @@ if (@mint_denv) {
     push @verb_env_tmp, @mint_denv;
 }
 
-### Search \newminted[$mintcenv]{lang} in <input file> (for)
+### Search \newminted[$mintcenv]{lang} in <input file>
 my @mint_cenv = $filecheck =~ m/$mintcenv/xg;
 if (@mint_cenv) {
     Log("Found \\newminted\[envname\] in $name$ext");
@@ -840,7 +847,7 @@ if (@mint_cenv) {
 ### Remove repetead again :)
 @verb_env_tmp = uniq(@verb_env_tmp);
 
-### Capture verbatim inline macros in input file
+### Capture verbatim inline macros in <input file>
 Log("Search verbatim macros in $name$ext");
 
 ### Store all minted inline/short in @mintline
@@ -1043,16 +1050,12 @@ my $verb_wrt = qr {
                     )
                   }x;
 
-### An array with all environments to extract
-my @extract_env = qw(preview nopreview);
-push @extract_env,@extr_env_tmp;
-my %extract_env = crearhash(@extract_env);
-
+### The environments that will be searched for extraction
 Log('The environments that will be searched for extraction:');
-Logarray(\@extr_env_tmp);
+Logarray(\@extractenv);
 
 ### Create a regex to extract environments
-my $environ = join q{|}, map { quotemeta } sort { length $a <=> length $b } @extr_env_tmp;
+my $environ = join q{|}, map { quotemeta } sort { length $a <=> length $b } @extractenv;
 $environ = qr/$environ/x;
 my $extr_tmp = qr {
                     (
@@ -1070,10 +1073,17 @@ my $extr_tmp = qr {
                     )
                   }x;
 
+### Hash for replace in verbatim begin -> Begin end -> END
+my %extract_env = crearhash(@extractenv);
+
+### The preview and nopreview environments are "special", need replace in verbatim begin -> Begin end -> END
+my @preview_env = qw(preview nopreview);
+my %preview_env = crearhash(@preview_env);
+
 Log('Making changes to verbatim/verbatim write environments before extraction');
 
 ### Hash and Regex for changes, this "regex" is re-used in ALL script
-my %replace = (%extract_env, %changes_in, %document);
+my %replace = (%extract_env, %preview_env, %changes_in, %document);
 my $find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %replace;
 
 ### We go line by line and make the changes (/p for ${^MATCH})
@@ -1085,17 +1095,15 @@ while ($document =~ /$verb_wrt | $verb_std /pgmx) {
     pos ($document) = $pos_inicial + length $encontrado;
 }
 
-### Now match preview environment
-my @env_preview = $document =~ m/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
-                                (\\begin\{preview\}.+?\\end\{preview\})/gmsx;
+### Now match preview environment in <input file>
+my @env_preview = $document =~ m/(\\begin\{preview\}.+?\\end\{preview\})/gmsx;
 
-### Convert preview environment
+### Convert preview to nopreview environment
 if (@env_preview) {
     my $preNo = scalar @env_preview;
     Log("Found $preNo preview environments in $name$ext");
     Log("Pass all preview environments to \\begin{nopreview}\%TMP$tmp ... \\end{nopreview}\%TMP$tmp");
-    $document =~ s/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
-                  (?:(\\begin\{|\\end\{))(preview\})/$1no$2\%TMP$tmp/gmsx;
+    $document =~ s/(?:(\\begin\{|\\end\{))(preview\})/$1no$2\%TMP$tmp/gmsx;
 }
 
 ### Internal dtxtag mark for verbatim environments
@@ -1103,38 +1111,34 @@ my $dtxverb = "verbatim$tmp";
 
 Log("Pass verbatim write environments to %<*$dtxverb> ... %</$dtxverb>");
 $document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-               \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-               ($verb_wrt)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
+                ($verb_wrt)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
 Log("Pass verbatim environments to %<*$dtxverb> ... %</$dtxverb>");
 $document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-               \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-               ($verb_std)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
+                ($verb_std)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
 Log("Pass %CleanPST ... %CleanPST to %<*remove$tmp> ... %</remove$tmp>");
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               ^(?:%CleanPST) (.+?) (?:%CleanPST)/\%<\*remove$tmp>$1\%<\/remove$tmp>/gmsx;
 
 ### Check plain TeX syntax [skip PSTexample]
-Log('Convert plain \pspicture to LaTeX syntax');
+Log('Convert plain \pspicture to LaTeX syntax [skip in PSTexample]');
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
-              \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-              \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-              \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
-              \\pspicture(\*)?(.+?)\\endpspicture/\\begin\{pspicture$1\}$2\\end\{pspicture$1\}/gmsx;
-Log('Convert plain \psgraph to LaTeX syntax');
+               \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+               \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+               \\pspicture(\*)?(.+?)\\endpspicture/\\begin\{pspicture$1\}$2\\end\{pspicture$1\}/gmsx;
+
+Log('Convert plain \psgraph to LaTeX syntax [skip in PSTexample]');
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
-              \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-              \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-              \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
-              \\psgraph(\*)?(.+?)\\endpsgraph/\\begin\{psgraph$1\}$2\\end\{psgraph$1\}/gmsx;
+               \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+               \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+               \\psgraph(\*)?(.+?)\\endpsgraph/\\begin\{psgraph$1\}$2\\end\{psgraph$1\}/gmsx;
 
 ### Force mode for pstricks/psgraph
 if ($force) {
     Log('Capture \psset{...} for pstricks environments [force mode]');
     $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                    \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-                   \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
                    \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
                    \\begin\{postscript\}.+?\\end\{postscript\}(*SKIP)(*F)|
                    (?<code>
@@ -1147,22 +1151,19 @@ if ($force) {
 Log("Pass all postscript environments to \\begin{$wrapping} ... \\end{$wrapping}");
 $document =~ s/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
                \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-              (?:\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
-                 (?<code>.+?)
-                 (?:\\end\{postscript\})
+               (?:\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
+                   (?<code>.+?)
+               (?:\\end\{postscript\})
               /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
 
 Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
 $document =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-              \\begin\{preview\}.+?\\end\{preview\}(*SKIP)(*F)|
-              \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
-              ($extr_tmp)/\\begin\{$wrapping\}$1\\end\{$wrapping\}/gmsx;
+               \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
+               ($extr_tmp)/\\begin\{$wrapping\}$1\\end\{$wrapping\}/gmsx;
 
-########################################################################
-#  All environments are now classified:                                #
-#  Extraction       ->    \begin{$wrapping} ... \end{$wrapping}        #
-#  Verbatim's       ->    %<\*$dtxverb> ... <\/$dtxverb>               #
-########################################################################
+### All environments are now classified:
+### Extraction  ->  \begin{$wrapping} ... \end{$wrapping}
+### Verbatim's  ->  %<\*$dtxverb> ... <\/$dtxverb>
 
 ### Now split document
 my ($preamble,$bodydoc,$enddoc) = $document =~ m/\A (.+?) (\\begin\{document\} .+?)(\\end\{document\}.*)\z/msx;
@@ -1192,25 +1193,25 @@ $find    = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %r
 $bodydoc  =~ s/($find)/$replace{$1}/g;
 $preamble =~ s/($find)/$replace{$1}/g;
 
-### First search PSTexample environment for extract
+### Set vars for match/regex
+my $BP = "\\\\begin\{$wrapping\}";
+my $EP = "\\\\end\{$wrapping\}";
 my $BE = '\\\\begin\{PSTexample\}';
 my $EE = '\\\\end\{PSTexample\}';
 
-my @exa_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})(\\begin\{PSTexample\}.+?\\end\{PSTexample\})(?:\\end\{$wrapping\})/gmsx;
+### First search PSTexample environment for extract
+my @exa_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})($BE.+?$EE)(?:\\end\{$wrapping\})/gmsx;
 my $exaNo = scalar @exa_extract;
 
-my $envEXA;
-my $fileEXA;
-if ($exaNo > 1) {
-    $envEXA   = 'PSTexample environments';
-    $fileEXA  = 'files';
-}
-else {
-    $envEXA   = 'PSTexample environment';
-    $fileEXA  = 'file';
-}
+### Set vars for log and print in terminal
+my $envEXA = $exaNo > 1 ? 'PSTexample environments'
+           :              'PSTexample environment'
+           ;
+my $fileEXA = $exaNo > 1 ? 'files'
+            :              'file'
+            ;
 
-### Check if PSTexample environment found
+### If PSTexample environment found
 if ($exaNo!=0) {
     $PSTexa = 1;
     Log("Found $exaNo $envEXA in $name$ext");
@@ -1236,6 +1237,8 @@ if ($exaNo!=0) {
         pos($bodydoc) = $pos_inicial + length $corchetes;
     }
     continue { $exaNo++; }
+    # Reset exaNo
+    $exaNo = scalar @exa_extract;
     Log('Pass PSTexample environments to \begin{nopreview} ... \end{nopreview}');
     $bodydoc =~ s/\\begin\{$wrapping\}
                     (?<code>\\begin\{PSTexample\} .+? \\end\{PSTexample\})
@@ -1243,27 +1246,19 @@ if ($exaNo!=0) {
                  /\\begin\{nopreview\}\%$tmp$+{code}\\end\{nopreview\}\%$tmp/gmsx;
 }
 
-### Reset exaNo
-$exaNo = scalar @exa_extract;
-
-my $BP = "\\\\begin\{$wrapping\}";
-my $EP = "\\\\end\{$wrapping\}";
-
-my @env_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})(.+?)(?:\\end\{$wrapping\})/gmsx;
+### Second search any pstricks environment for extract
+my @env_extract = $bodydoc =~ m/(?:$BP)(.+?)(?:$EP)/gmsx;
 my $envNo = scalar @env_extract;
 
-my $envSTD;
-my $fileSTD;
-if ($envNo > 1) {
-    $envSTD   = 'pstricks environments';
-    $fileSTD  = 'files';
-}
-else {
-    $envSTD   = 'pstricks environment';
-    $fileSTD  = 'file';
-}
+### Set vars for log and print in terminal
+my $envSTD = $envNo > 1 ? 'pstricks environments'
+           :              'pstricks environment'
+           ;
+my $fileSTD = $envNo > 1 ? 'files'
+            :              'file'
+            ;
 
-### Check if pstricks environments found
+### If any pstricks environments found
 if ($envNo!=0) {
     $STDenv = 1;
     Log("Found $envNo $envSTD in $name$ext");
@@ -1275,30 +1270,10 @@ if ($envNo!=0) {
     }
 }
 
-### Check if enviroment(s) found in input file
+### Run script process only if any enviroment(s) found in <input file>
 if ($envNo == 0 and $exaNo == 0) {
     errorUsage("$scriptname can not find any environment to extract in $name$ext");
 }
-
-### Check --arara and --latexmk option from command line
-if ($arara && $latexmk) {
-    errorUsage('Options --arara and --latexmk  are mutually exclusive');
-}
-
-### Check --biber and --bibtex option from command line
-if ($biber && $bibtex) {
-    errorUsage('Options --biber and --bibtex  are mutually exclusive');
-}
-
-#### If --srcenv or --subenv option are OK then execute script
-#if ($srcenv) {
-    #$outsrc = 1;
-    #$subenv = 0;
-#}
-#if ($subenv) {
-    #$outsrc = 1;
-    #$srcenv = 0;
-#}
 
 ### Set directory to save generated files, need full path for goog log :)
 my $imgdirpath = File::Spec->rel2abs($imgdir);
@@ -1440,9 +1415,9 @@ if (!$nosource) {
     else {
         Log('Extract source code of all captured environments with preamble');
         if ($STDenv) {
-            Log("Creating a $envNo standalone $fileSTD [$ext] whit source code and preamble for $envSTD in $imgdirpath");
+            Log("Creating a $envNo standalone $fileSTD [$ext] for $envSTD in $imgdirpath");
             print "Creating a $envNo standalone $fileSTD ", color('magenta'), "[$ext]",
-            color('reset'), " whit source code and preamble for $envSTD\r\n";
+            color('reset'), " for $envSTD\r\n";
             while ($tmpbodydoc =~ m/$BP(?:\s*)?(?<env_src>.+?)(?:\s*)?$EP/gms) {
                 open my $outstdfile, '>', "$imgdir/$src_name$srcNo$ext";
                     print {$outstdfile} "$sub_prea\n$+{'env_src'}\n\\end\{document\}";
@@ -1451,9 +1426,9 @@ if (!$nosource) {
             continue { $srcNo++; }
         }
         if ($PSTexa) {
-            Log("Creating a $exaNo standalone $fileEXA [$ext] whit source code and preamble for $envEXA in $imgdirpath");
+            Log("Creating a $exaNo standalone $fileEXA [$ext] for $envEXA in $imgdirpath");
             print "Creating a $exaNo standalone $fileEXA ", color('magenta'), "[$ext]",
-            color('reset'), " whit source code and preamble for $envEXA\r\n";
+            color('reset'), " for $envEXA\r\n";
             while ($tmpbodydoc =~ m/$BE\[.+?(?<pst_exa_name>$imgdir\/.+?-\d+)\}\]\s*(?<exa_src>.+?)\s*$EE/gms) {
                 open my $outexafile, '>', "$+{'pst_exa_name'}$ext";
                     print {$outexafile} "$sub_prea\n$+{'exa_src'}\n\\end\{document\}";
@@ -1504,9 +1479,9 @@ $preamout   =~ s/\%<\*$dtxverb>(.+?)\%<\/$dtxverb>/$1/gmsx;
 $tmpbodydoc =~ s/\\begin\{nopreview\}\%$tmp
                     (?<code> .+?)
                   \\end\{nopreview\}\%$tmp
-                /\\begin\{nopreview\}$+{code}\n\\end\{nopreview\}/gmsx;
+                /\\begin\{nopreview\}\n$+{code}\n\\end\{nopreview\}/gmsx;
 
-### Adjust $wrapping environments
+### Adjust $wrapping environments (no need realy)
 $tmpbodydoc =~ s/\\begin\{$wrapping\}
                     (?<code>.+?)
                   \\end\{$wrapping\}
@@ -1814,7 +1789,7 @@ if (@graphicxpkg) {
     $findgraphicx = 'false';
 }
 
-### Second search graphicspath
+### Search graphicspath
 @graphicspath = $preambletmp =~ m/graphicspath/msx;
 if (@graphicspath) {
     Log("Found \\graphicspath in preamble for $name-pdf$ext");
@@ -1834,7 +1809,7 @@ if (@graphicspath) {
     }
 }
 
-### Third search pst-exa
+### Search pst-exa
 @pst_exa  = $preambletmp =~ m/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|$pstexa/xg;
 %pst_exa = map { $_ => 1 } @pst_exa;
 if (@pst_exa) {
@@ -1978,15 +1953,15 @@ open my $OUTfile, '>', "$name-pdf$ext";
 close $OUTfile;
 
 ### Set compiler for process <output file>
-$compiler = $xetex   ? 'xelatex'
-          : $luatex  ? 'lualatex'
-          :            'pdflatex'
+$compiler = $xetex  ? 'xelatex'
+          : $luatex ? 'lualatex'
+          :           'pdflatex'
           ;
 
 ### Set options for latexmk
-my $ltxmkopt = $xetex   ? "-pdfxe -xelatex=\"xelatex $write18 -interaction=nonstopmode -recorder %O %S\""
-             : $luatex  ? "-pdflua -lualatex=\"lualatex $write18 -interaction=nonstopmode -recorder %O %S\""
-             :            "-pdf -pdflatex=\"pdflatex $write18 -interaction=nonstopmode -recorder %O %S\""
+my $ltxmkopt = $xetex  ? "-pdfxe -silent -xelatex=\"xelatex $write18 -recorder %O %S\""
+             : $luatex ? "-pdflua -silent -lualatex=\"lualatex $write18 -recorder %O %S\""
+             :           "-pdf -silent -pdflatex=\"pdflatex $write18 -recorder %O %S\""
              ;
 ### Set options for compiler
 $opt_compiler = $arara   ? '--log'
@@ -2015,7 +1990,7 @@ if (!$norun) {
     }
 }
 
-### Compress ./images with generated files
+### Compress "./images" with generated files
 my $archivetar;
 if ($zip or $tar) {
     my $stamp = strftime("%Y-%m-%d", localtime);
@@ -2139,12 +2114,6 @@ Falta
 3. Hacer fake la opción --clear (ya no es necesaria)
 4. Documentar TODOS los cambios
 
-
-if ($runbibtex && $runbiber) {
-    LOG ("!!! you cannot run BibTeX and Biber at the same document ...");
-    LOG ("!!! Assuming to run Biber");
-  $runbibtex = 0;
-}
 
 if ($all) {
   LOG ("Generate images eps/pdf/files and clear...");
