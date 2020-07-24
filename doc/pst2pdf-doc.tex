@@ -1,7 +1,8 @@
 % arara: latex: {draft: yes}
-% arara: latex: {draft: yes}
+% arara: latex
 % arara: biber
 % arara: makeindex
+% arara: latex
 % arara: latex
 % arara: dvips
 % arara: ps2pdf
@@ -49,14 +50,14 @@
 calculations. This is an important advantage, because floating point arithmetic is no
 problem. Nearly all mathematical calculation can be done when running the \DVI-file
 with \gs. However, creating a \PDF\ file in a direct way with \Lprog{pdflatex} is
-not possible. \Lprog{pdflatex} cannot understand the \PS\ related stuff. 
+not possible. \Lprog{pdflatex} cannot understand the \PS\ related stuff.
 
 Instead of running \Lprog{pdflatex} one can use the \Lprog{perl} \emph{script} \Lprog{pst2pdf}, it extracts
 all \PST\ related code into single documents with the same preamble as the original
 main document.
 
 The \nxLprog{pst2pdf} \emph{script} runs document, clips all whitespace around the
-image and creates a \Lext{pdf} images of the \PST\ related code. 
+image and creates a \Lext{pdf} images of the \PST\ related code.
 
 In a last run which is the \Lprog{pdflatex} the \PST\ code in the
 main document is replaced by the created images.
@@ -78,7 +79,7 @@ environment or for some code which is not inside of a \Lenv{pspicture} environme
 
 \begin{verbatim}
 %CleanPST
-pstricks code	
+pstricks code
 %CleanPST
 \end{verbatim}
 
@@ -90,7 +91,7 @@ pstricks code
 \begin{verbatim}
 \pspicture*
 \psset{...}
-pstricks code	
+pstricks code
 \endpspicture
 \end{verbatim}
 \end{minipage}
@@ -98,7 +99,7 @@ pstricks code
 \begin{verbatim}
 \begin{pspicture}
 \psset{...}
-pstricks code	
+pstricks code
 \end{pspicture}
 \end{verbatim}
 \end{minipage}
@@ -106,7 +107,7 @@ pstricks code
 \begin{verbatim}
 \begin{pspicture*}
 \psset{...}
-pstricks code	
+pstricks code
 \end{pspicture*}
 \end{verbatim}
 \end{minipage}
@@ -114,13 +115,13 @@ pstricks code
 \begin{verbatim}
 \begin{postscript}
 \psset{...}
-pstricks code	
+pstricks code
 \end{postscript}
 \end{verbatim}
 \end{minipage}
 
 \vspace{10pt}
-Note: When using the default mode, images are created using \Lprog{Ghostscript} and \LPack{preview} package, in this case, it is not necessary 
+Note: When using the default mode, images are created using \Lprog{Ghostscript} and \LPack{preview} package, in this case, it is not necessary
 to write \Lenv{psset} into \PST\ environment.
 \newpage
 \section{Running the script}
@@ -137,7 +138,7 @@ For \TeX Live users:
 \nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{--options}
 \end{BDef}
 
-In this way \nxLprog{pst2pdf} creates a new file called \Larg{file-pst.tex} and copy all \Lenv{pspicture} 
+In this way \nxLprog{pst2pdf} creates a new file called \Larg{file-pst.tex} and copy all \Lenv{pspicture}
 and \Lenv{postscript} environments, then processed and create file-pdf.pdf and file-fig-1.pdf, file-fig-2.pdf, file-fig-\dots.pdf and file-fig-1.tex, file-fig-2.tex, file-fig-\dots.tex for all \Lenv{pspicture} and \Lenv{postscript} using \nxLprog{Ghostscript}.
 \subsection{Single mode}
 \label{single}
@@ -188,12 +189,12 @@ For Help in command line use:
 \end{BDef}
 
 \section{Other image format}
-If you need to create other image formats use \nxLprog{pst2pdf}, move to images dir and use 
+If you need to create other image formats use \nxLprog{pst2pdf}, move to images dir and use
 \nxLprog{mogrify} command (from \Lprog{ImageMagick}), for examples:\\
 
-\begin{BDef} 
-\nxLprog{mogrify} -format tiff \OptArg*{*.ppm} 
-\end{BDef} 
+\begin{BDef}
+\nxLprog{mogrify} -format tiff \OptArg*{*.ppm}
+\end{BDef}
 generate \Lext{tiff} images files.
 %\newpage
 \clearpage

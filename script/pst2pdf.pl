@@ -22,8 +22,7 @@ use v5.26;
 # MA  02111-1307  USA
 #
 
-#use Getopt::Long qw(:config bundling_override); # read parameter and activate "bundling"
-use Getopt::Long qw(:config bundling_override no_ignore_case);# require_order  no_ignore_case
+use Getopt::Long qw(:config bundling_override no_ignore_case); # require_order
 use File::Spec::Functions qw(catfile devnull);
 use File::Basename;
 use Archive::Tar;
@@ -80,7 +79,8 @@ my $gray;               # gray scale ghostscript
 my $log      = 0;       # log file
 my $PSTexa   = 0;       # run extract PSTexample environments
 my $STDenv   = 0;       # run extract pspicture/psfrag environments
-my %opts_cmd;           # hash to store Getopt::Long options
+my @currentopt;         # storing current options for log file
+my %opts_cmd;           # hash to store options for Getopt::Long  and log
 
 ### Script identification
 my $scriptname = 'pst2pdf';
@@ -249,13 +249,6 @@ my $copyright = <<'END_COPYRIGHT' ;
 Copyright 2011-2020 (c) Herbert Voss <hvoss@tug.org> and Pablo González.
 END_COPYRIGHT
 
-my $licensetxt = <<'END_LICENSE';
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-END_LICENSE
-
 my $versiontxt= <<"END_VERSION" ;
 ${scriptname} ${nv} ${ident}
 ${copyright}
@@ -270,40 +263,37 @@ find_ghostscript();
 
 my $usage = <<"END_OF_USAGE";
 ${title}Usage: $scriptname [options] <texfile.tex>
-Usage: $scriptname <texfile.tex>  [options]
+or $scriptname <texfile.tex>  [options]
 pst2pdf run a TeX source, read all PS-related part and convert in images
     in pdf,eps,jpg,svg or png format (default pdf) and create new file
     whitout pst-environments and runs (pdf/Xe/lua)latex.
-    See texdoc pst2pdf documentation for more info.
+    See texdoc pst2pdf for full documentation.
 
 ** Options
                                                                     [default]
+-l, --log             Write .log file with debug information        [off]
 -h, --help            Display command line help and exit            [off]
 -v, --version         Display current version ($nv) and exit       [off]
--V, --verbose         Verbose printing information                  [off]
--l, --log             Write .log file with debug information        [off]
+-V, --Verbose         Verbose printing information                  [off]
 -t, --tif             Create .tif files using ghostscript           [$gscmd]
 -b, --bmp             Create .bmp files using ghostscript           [$gscmd]
 -j, --jpg             Create .jpg files using ghostscript           [$gscmd]
 -p, --png             Create .png files using ghostscript           [$gscmd]
   -d,--dpi=<int>     - the dots per inch for images (default 300)
-  -j,--jpg           - create .jpg files (need Ghostscript)
-  -p,--png           - create .png files (need Ghostscript)
   -e,--eps           - create .eps files (need pdftops)
   -s,--svg           - create .svg files (need pdftocairo)
   -P,--ppm           - create .ppm files (need pdftoppm)
   -a,--all           - create .(pdf,eps,jpg,png,ppm,svg) images
   -c,--clear         - delete all temp and aux files
   -x,--xetex         - using (Xe)LaTeX for create images
-  -m,--margins=<int> - margins for pdfcrop (in bp) (default 1)
-  -ni,--noimages     - generate file-pdf.tex, but not images
-  -np,--single       - create images files whitout preview pkg
+  -m,--margins=<int> - Ser margins (in bp) for pdfcrop (default 1)
+  -ni,--noimages     - Generate file-pdf.tex, but not images
+  -np,--single, --noprew       - create images files whitout preview pkg
   -ns,--nosource     - delete all source(.tex) for images files
   --imgdir=<string>  - the folder for the created images (default images)
   --ignore=<string>  - add other's verbatim environments (default other)
   --bibtex           - run bibtex on the aux file, if exists
   --biber            - run biber on the bcf file, if exists
-  -V,--Verbose          - show extended information of process file
 
 Examples:
 * $scriptname test.tex -e -p -j -c --imgdir=pics
@@ -355,7 +345,7 @@ my $result=GetOptions (
     'V|Verbose'          => \$verbose,  # flag
 ) or do { $log = 0 ; die usage(0); };
 
-### Open log file
+### Open pst2pdf.log file
 if ($log) {
     if (!defined $ARGV[0]) { errorUsage('Input filename missing'); }
     my $tempname = $ARGV[0];
@@ -684,9 +674,7 @@ if (!$nopdf) {
 }
 
 ### Store image formats in hash
-my %format = (%{$opts_cmd{image}});
-my $format = join q{, },grep { defined $format{$_} } keys %format;
-
+my $format = join q{, },grep { defined $opts_cmd{image}{$_} } keys %{$opts_cmd{image}};
 if (!$norun) {
     Log("Defined image formats for creating: $format");
 }
@@ -1207,7 +1195,7 @@ else {
 ### Now split document
 my ($preamble,$bodydoc,$enddoc) = $document =~ m/\A (.+?) (\\begin\{document\} .+?)(\\end\{document\}.*)\z/msx;
 
-### Hash for reverse changes for extract and output file
+### Hash for reverse changes for extract and <output file>
 my %changes_out = (
     '\PSSET'            => '\psset',
     '\TIKZSET'          => '\tikzset',
@@ -1305,6 +1293,51 @@ if ($envNo!=0) {
 if ($envNo == 0 and $exaNo == 0) {
     errorUsage("$scriptname can not find any environment to extract in $name$ext");
 }
+
+### Storing the current options of script process for log file
+if ($zip) { $opts_cmd{boolean}{zip} = 1; }
+if ($tar) { $opts_cmd{boolean}{tar} = 1; }
+if ($nopdf) { $opts_cmd{boolean}{nopdf} = 1; }
+if ($norun) { $opts_cmd{boolean}{norun} = 1; }
+if ($nocrop) { $opts_cmd{boolean}{nocrop} = 1; }
+if ($srcenv) { $opts_cmd{boolean}{srcenv} = 1; }
+if ($gray) { $opts_cmd{boolean}{gray} = 1; }
+if ($force) { $opts_cmd{boolean}{force} = 1; }
+if ($noprew) { $opts_cmd{boolean}{noprew} = 1; }
+if ($runbibtex) { $opts_cmd{boolean}{bibtex} = 1; }
+if ($runbiber) { $opts_cmd{boolean}{biber} = 1; }
+if ($clear) { $opts_cmd{boolean}{clear} = 1; }
+if ($nosource) { $opts_cmd{boolean}{nosource} = 1; }
+if ($arara) { $opts_cmd{compiler}{arara} = 1; }
+if ($latexmk) { $opts_cmd{compiler}{latexmk} = 1; }
+if ($luatex) { $opts_cmd{compiler}{luatex} = 1; }
+if ($xetex) { $opts_cmd{compiler}{xetex} = 1; }
+if ($xetex) { $opts_cmd{compiler}{xetex} = 1; }
+if ($tmpverbenv) { $opts_cmd{string}{ignore} = $tmpverbenv; }
+$opts_cmd{string}{myverb} = $myverb;
+$opts_cmd{string}{dpi} = $dpi;
+$opts_cmd{string}{runs} = $runs;
+$opts_cmd{string}{margins} = $margins;
+$opts_cmd{string}{imgdir} = $imgdir;
+
+foreach my $key (keys %{$opts_cmd{boolean}}) {
+    if (defined $opts_cmd{boolean}{$key}) { push @currentopt, "--$key"; }
+}
+foreach my $key (keys %{$opts_cmd{compiler}}) {
+    if (defined $opts_cmd{compiler}{$key}) { push @currentopt, "--$key"; }
+}
+foreach my $key (keys %{$opts_cmd{image}}) {
+    if (defined $opts_cmd{image}{$key}) { push @currentopt, "--$key"; }
+}
+foreach my $key (keys %{$opts_cmd{string}}) {
+    if (defined $opts_cmd{string}{$key}) { push @currentopt, "--$key=$opts_cmd{string}{$key}"; }
+}
+
+@currentopt = grep !/--pdf/, @currentopt;
+my @sorted_words = sort { length $a <=> length $b } @currentopt;
+
+Log('The script will execute the following options:');
+Logarray(\@sorted_words);
 
 ### Set directory to save generated files, need full path for goog log :)
 my $imgdirpath = File::Spec->rel2abs($imgdir);
@@ -2048,7 +2081,7 @@ if ($zip or $tar) {
     Log('The files are compress are:');
     Logarray(\@savetozt);
     if ($zip) {
-        Infoline("Creating  the file $archivetar.zip");
+        Infoline("Creating the file $archivetar.zip");
         zip \@savetozt => "$archivetar.zip";
         Log("The file $archivetar.zip are in $workdir");
     }
@@ -2149,7 +2182,6 @@ Log("The execution of $scriptname has been successfully completed");
 __END__
 DESPUES DEBO MIGRAR LOS CAMBIOS A LTXIMG :)
 Falta
-1. Logear TODAS las opciones
 2. Reescribir --help
 4. Documentar TODOS los cambios
 
