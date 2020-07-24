@@ -67,8 +67,8 @@ my $help;               # help info
 my $version;            # version info
 my $license;            # license info
 my $verbose = 0;        # verbose info
-my @verb_env_tmp;       # save verbatim environments
-my $tmpverbenv;         # save verbatim environments
+my @verb_env_tmp;       # store verbatim environments
+my $tmpverbenv;         # save verbatim environment
 my $myverb = 'myverb' ; # internal \myverb macro
 my $gscmd;              # ghostscript executable name
 my $gray;               # gray scale ghostscript
@@ -81,7 +81,7 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $ident      = '$Id: pst2pdf.pl 119 2020-07-21 12:04:09Z herbert $';
+my $ident      = '$Id: pst2pdf.pl 119 2020-07-24 12:04:09Z herbert $';
 
 ### Log vars
 my $LogFile = "$scriptname.log";
@@ -262,16 +262,16 @@ ${title}
     pst2pdf run a TeX source, read all postscript, pspicture, psgraph
     and PSTexample environments and convert in images pdf,eps,jpg,svg
     or png format (default pdf), extract source code and create new
-    file whit all environments converted to \\includegraphics and runs
+    file with all environments converted to \\includegraphics and runs
     (pdf/Xe/lua)latex.
 
 Usage: $scriptname [<compiler>] [<options>] <texfile.tex>
        $scriptname <texfile.tex> [<compiler>] [options]
 
    If used without [<compiler>] and [<options>] the extracted environments
-   are converted to pdf image format and saved in the "./images" directory
-   using latex>dvips>ps2pdf and preview package to process <input file> and
-   pdflatex for compiler <output file>.
+   are saved in standalone files and converted to pdf image format in the
+   "./images" directory using latex>dvips>ps2pdf and preview package to
+   process <input file> and pdflatex for compiler <output file>.
 
 Options:
                                                                  [default]
@@ -293,16 +293,14 @@ Options:
   -r <integer>, --runs <integer>
                      Set the number of times the compiler will run
                      on the input file for extraction            [1]
+  -m <integer>, --margins <integer>
+                     Set margins in bp for pdfcrop                [0]
   -np, --noprew, --single
-                     Create images files whitout "preview" package [off]
-  --srcenv           Create files whit only code environment     [off]
+                     Create images files without "preview" package [off]
+  --srcenv           Create files with only code environment     [off]
   -ns,--nosource     - delete all source(.tex) for images files
   -ni,--norun, --noimages
                      Generate file-pdf.tex, but not images
-
-
-  -m <integer>, --margins <integer>
-                     Set margins in bp for pdfcrop                [0]
   --imgdir <dirname> Set name of directory to save images/files   [images]
   --myverb <macro>   Add "\\macroname" to verbatim inline search   [myverb]
   --zip              Compress generated files in .zip format       [off]
@@ -311,12 +309,16 @@ Options:
   --bibtex           Run bibtex on the .aux file (if exists)
   --biber            Run biber on the .bcf file (if exists)
 
-Examples:
-* $scriptname test.tex -e -p -j -c --imgdir=pics
-* produce test-pdf.tex whitout pstriks related parts and create image
-* dir whit all images (pdf,eps,png,jpg) and source (.tex) for all pst
-* environment in "./pics" dir using Ghostscript and cleaning all tmp files.
-* Suport bundling for short options $scriptname test.tex -epjc --imgdir=pics
+Example:
+\$ $scriptname -e -p -j --imgdir=pics test.tex
+* Create a "./pics" directory (if it doesn't exist) with all extracted
+* environments converted to individual files (.pdf, .eps, .png, .tex), a
+* file "test-fig-all.tex" with all extracted environments and the file
+* "test-pdf.tex" with all environments converted to \\includegraphics using
+* latex>dvips>ps2pdf and preview package for <input file> and pdflatex for
+* <output file>.
+
+Suport bundling for short options $scriptname test.tex -epj --imgdir=pics
 See texdoc pst2pdf for full documentation.
 END_OF_USAGE
 print $usage;
@@ -1009,7 +1011,7 @@ while ($document =~
 $document =~ s/\\[{]/<LTXSBO>/g;
 $document =~ s/\\[}]/<LTXSBC>/g;
 
-### Regex for verbatim inline/multiline whit braces {...}
+### Regex for verbatim inline/multiline with braces {...}
 my $nestedbr   = qr /   ( [{] (?: [^{}]++ | (?-1) )*+ [}]  )                      /x;
 my $fvextra    = qr /\\ (?: (Save|Esc)Verb [*]?) $no_corchete                     /x;
 my $mintedbr   = qr /\\ (?:$mintline|pygment) (?!\*) $no_corchete $no_llaves      /x;
@@ -1570,10 +1572,10 @@ $sub_prea = $noprew ? "$atbeginout$pstpdfpkg$preamout".'\begin{document}'
           :           "$atbeginout$previewpkg$preamout"
           ;
 
-### Create a one file whit "all" PSTexample environments extracted
+### Create a one file with "all" PSTexample environments extracted
 if ($PSTexa) {
     @exa_extract = undef;
-    Log("Adding packages to $name-fig-exa-$tmp$ext [in memory]");
+    Log("Adding packages to $name-fig-exa-$tmp$ext [memory]");
     Logline($pstpdfpkg);
     Log('Convert plain Tex syntax for pspicture and psgraph to LaTeX syntax in PSTexample environments');
     while ($tmpbodydoc =~ m/$BE\[.+? $imgdir\/.+?-\d+\}\] .+?$EE/pgsmx ) { # search
@@ -1585,7 +1587,7 @@ if ($PSTexa) {
         pos ($tmpbodydoc) = $pos_inicial + length $encontrado;
     }
     # Write file
-    Infoline("Creating $name-fig-exa-$tmp$ext whit $exaNo $envEXA extracted");
+    Infoline("Creating $name-fig-exa-$tmp$ext with $exaNo $envEXA extracted");
     while ($tmpbodydoc =~ m/$BE\[.+? $imgdir\/.+?-\d+\}\](?<exa_src>.+?)$EE/gmsx ) { # search
         push @exa_extract, $+{'exa_src'}."\\newpage\n";
         open my $allexaenv, '>', "$name-fig-exa-$tmp$ext";
@@ -1609,16 +1611,16 @@ if ($PSTexa) {
     }
 }
 
-### Create a one file whit "all" standard environments extracted
+### Create a one file with "all" standard environments extracted
 if ($STDenv) {
     if ($noprew) {
-        Log("Creating $name-fig-$tmp$ext whit $envNo $envSTD extracted [no preview]");
-        print "Creating $name-fig-$tmp$ext whit $envNo $envSTD extracted",
+        Log("Creating $name-fig-$tmp$ext with $envNo $envSTD extracted [no preview]");
+        print "Creating $name-fig-$tmp$ext with $envNo $envSTD extracted",
         color('magenta'), " [no preview]\r\n",color('reset');
     }
     else {
-        Log("Creating $name-fig-$tmp$ext whit $envNo $envSTD extracted [preview]");
-        print "Creating $name-fig-$tmp$ext whit $envNo $envSTD extracted",
+        Log("Creating $name-fig-$tmp$ext with $envNo $envSTD extracted [preview]");
+        print "Creating $name-fig-$tmp$ext with $envNo $envSTD extracted",
         color('magenta'), " [preview]\r\n",color('reset');
     }
     open my $allstdenv, '>', "$name-fig-$tmp$ext";
@@ -1674,7 +1676,7 @@ opendir (my $DIR, $workdir);
                 RUNOSCMD("ps2pdf -sPDFSETTINGS=prepress -sAutoRotatePages=None", "$+{name}-$tmp.ps  $+{name}-$tmp.pdf",'show');
             }
             # Moving and renaming temp files with source code
-            Log("Move $+{name}$+{type} file whit all source for environments to $imgdirpath");
+            Log("Move $+{name}$+{type} file with all source for environments to $imgdirpath");
             Infoline("Moving and renaming $+{name}$+{type} to $+{name}-all$ext");
             if ($verbose){
                 Infocolor('Running', "mv $workdir/$+{name}$+{type} $imgdirpath/$+{name}-all$ext");
@@ -1686,8 +1688,10 @@ opendir (my $DIR, $workdir);
             move("$workdir/$+{name}$+{type}", "$imgdir/$+{name}-all$ext")
             or die "* Error!!: Couldn't be renamed $+{name}$+{type} to $imgdir/$+{name}-all$ext";
             # pdfcrop
-            Infoline("Cropping the file $+{name}-$tmp.pdf");
-            RUNOSCMD("pdfcrop $opt_crop", "$+{name}-$tmp.pdf $+{name}-$tmp.pdf",'show');
+            if (!$nocrop) {
+                Infoline("Cropping the file $+{name}-$tmp.pdf");
+                RUNOSCMD("pdfcrop $opt_crop", "$+{name}-$tmp.pdf $+{name}-$tmp.pdf",'show');
+            }
             # gray
             if ($gray) {
                 Infoline("Creating the file $+{name}-all.pdf [gray] in $tempDir");
