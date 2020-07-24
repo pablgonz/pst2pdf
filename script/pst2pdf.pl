@@ -22,7 +22,8 @@ use v5.26;
 # MA  02111-1307  USA
 #
 
-use Getopt::Long qw(:config bundling_override); # read parameter and activate "bundling"
+#use Getopt::Long qw(:config bundling_override); # read parameter and activate "bundling"
+use Getopt::Long qw(:config bundling_override no_ignore_case);# require_order  no_ignore_case
 use File::Spec::Functions qw(catfile devnull);
 use File::Basename;
 use Archive::Tar;
@@ -64,6 +65,7 @@ my $nosource = 0;       # Delete TeX source for images
 my $srcenv;             # write only source code of environments
 my $nopdf;              # Don't create a pdf image files
 my $force;              # try to capture \psset
+my $nocrop;             # Don't crop image files
 my $zip;                # compress files generated in .zip
 my $tar;                # compress files generated in .tar.gz
 my $help;               # help info
@@ -71,6 +73,7 @@ my $version;            # version info
 my $license;            # license info
 my $verbose = 0;        # verbose info
 my @verb_env_tmp;       # save verbatim environments
+my $tmpverbenv;         # save verbatim environments
 my $myverb = 'myverb' ; # internal \myverb macro
 my $gscmd;              # ghostscript executable name
 my $gray;               # gray scale ghostscript
@@ -323,7 +326,8 @@ my $result=GetOptions (
     'runs=i'             => \$runs,     # numeric
     'm|margins=i'        => \$margins,  # numeric
     'imgdir=s'           => \$imgdir,   # string
-    'ignore=s'           => \@verb_env_tmp, # string
+    'myverb=s'           => \$myverb,   # string
+    'ignore=s'           => \$tmpverbenv, # string separate by comma
     'c|clear'            => \$clear,    # flag
     'ni|noimages|norun'  => \$norun,    # flag
     'np|single|noprew'   => \$noprew,   # flag
@@ -333,6 +337,7 @@ my $result=GetOptions (
     'latexmk'            => \$latexmk,  # flag
     'srcenv'             => \$srcenv,   # flag
     'nopdf'              => \$nopdf,    # flag
+    'nocrop'             => \$nocrop,   # flag
     'zip'                => \$zip,      # flag
     'tar'                => \$tar,      # flag
     'g|gray'             => \$gray,     # flag
@@ -363,23 +368,42 @@ if ($log) {
 Log("The script $scriptname $nv was started in $workdir");
 Log("Creating the temporary directory $tempDir");
 
-### Validate verbatim environments options from comand line
-s/^\s*(\=):?|\s*//mg foreach @verb_env_tmp;
-@verb_env_tmp = split /,/,join q{},@verb_env_tmp;
-if (grep /(^\-|^\.).*?/, @verb_env_tmp) {
-    Log('Error!!: Invalid argument for --ignore, some argument from list begin with -');
-    errorUsage('Invalid argument for --ignore option');
-}
-
-### Check --arara and --latexmk option from command line
+### Check --arara and --latexmk
 if ($arara && $latexmk) {
+    Log('Error!!: Options --arara and --latexmk  are mutually exclusive');
     errorUsage('Options --arara and --latexmk  are mutually exclusive');
 }
 
-### Check --biber and --bibtex option from command line
+### Check --biber and --bibtex
 if ($runbiber && $runbibtex) {
+    Log('Error!!: Options --biber and --bibtex  are mutually exclusive');
     errorUsage('Options --biber and --bibtex  are mutually exclusive');
 }
+
+### Check --runs
+if( $runs <= 0 or $runs >= 3) {
+    Log('Error!!: Invalid argument for --runs, argument out of range');
+    errorUsage('Invalid argument for --runs option');
+}
+
+### Check --dpi
+if( $dpi <= 0 or $dpi >= 2500) {
+    Log('Error!!: Invalid argument for --dpi, argument out of range');
+    errorUsage('Invalid argument for --dpi option');
+}
+
+### Validate --myverb
+if ($myverb =~ /^(?:\\|\-).+?/) {
+    Log('Error!!: Invalid argument for --myverb option, argument begin with \ or -');
+    errorUsage('Invalid argument for --myverb');
+}
+
+### Validate --ignore
+if ($tmpverbenv =~ /^(?:\\|\-).+?/) {
+    Log('Error!!: Invalid argument for --ignore option, argument begin with \ or -');
+    errorUsage('Invalid argument for --ignore');
+}
+else { @verb_env_tmp = $tmpverbenv; }
 
 ### Make ENV safer, see perldoc perlsec
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
@@ -571,8 +595,8 @@ sub SearchRegistry {
 } # end GS search registry
 
 ### This part is only necessary if you're using Git on windows and don't
-### have gs configured in the PATH. Git for windows don't have a Win32::TieRegistry
-### and this module is not supported in the current versions.
+### have gs configured in PATH. Git for windows don't have a Win32::TieRegistry
+### module for perl (is not supported in the current versions of msys).
 sub Searchbyregquery {
     my $found = 0;
     my $gs_regkey;
@@ -641,14 +665,11 @@ if (defined $version) {
     exit 0;
 }
 
-### Set tmp random number for <name-fig-tmp>
+### Set temp internal vars for <name-fig-tmp> and extraction
 my $tmp = int(rand(10000));
-
-### Internal dtxtag mark for verbatim environments
 my $dtxverb = "verbatim$tmp";
+my $wrapping = "$scriptname$tmp"; # wraped for environment extraction
 
-### Set wraped name for environment extraction
-my $wrapping = "$scriptname$tmp";
 Log("Set up the environment [$wrapping] to encapsulate the extraction");
 
 ### Set vars for match/regex
@@ -1085,7 +1106,8 @@ my $extr_tmp = qr {
 ### Hash for replace in verbatim begin -> Begin end -> END
 my %extract_env = crearhash(@extractenv);
 
-### The preview and nopreview environments are "special", need replace in verbatim begin -> Begin end -> END
+### The preview and nopreview environments are "special", need replace
+### in verbatim's environments begin -> Begin end -> END
 my @preview_env = qw(preview nopreview);
 my %preview_env = crearhash(@preview_env);
 
@@ -1115,57 +1137,68 @@ if (@env_preview) {
     $document =~ s/(?:(\\begin\{|\\end\{))(preview\})/$1no$2\%TMP$tmp/gmsx;
 }
 
+### Pass verbatim write environments to dtxtag
 Log("Pass verbatim write environments to %<*$dtxverb> ... %</$dtxverb>");
 $document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                 ($verb_wrt)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
+### Pass verbatim environments to dtxtag
 Log("Pass verbatim environments to %<*$dtxverb> ... %</$dtxverb>");
 $document  =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+                \%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                 ($verb_std)/\%<\*$dtxverb>$1\%<\/$dtxverb>/gmsx;
 
+### Pass %CleanPST to dtxtag
 Log("Pass %CleanPST ... %CleanPST to %<*remove$tmp> ... %</remove$tmp>");
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               ^(?:%CleanPST) (.+?) (?:%CleanPST)/\%<\*remove$tmp>$1\%<\/remove$tmp>/gmsx;
 
-### Check plain TeX syntax [skip PSTexample]
+### Check plain TeX syntax for pspicture [skip PSTexample]
 Log('Convert plain \pspicture to LaTeX syntax [skip in PSTexample]');
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
                \\pspicture(\*)?(.+?)\\endpspicture/\\begin\{pspicture$1\}$2\\end\{pspicture$1\}/gmsx;
 
+### Check plain TeX syntax for psgraph [skip PSTexample]
 Log('Convert plain \psgraph to LaTeX syntax [skip in PSTexample]');
 $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
                \\psgraph(\*)?(.+?)\\endpsgraph/\\begin\{psgraph$1\}$2\\end\{psgraph$1\}/gmsx;
 
-### Force mode for pstricks/psgraph
-if ($force) {
-    Log('Capture \psset{...} for pstricks environments [force mode]');
-    $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
-                   \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-                   \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
-                   \\begin\{postscript\}.+?\\end\{postscript\}(*SKIP)(*F)|
-                   (?<code>
-                     (?:\\psset\{(?:\{.*?\}|[^\{])*\}.+?)?  # if exist ...save
-                     \\begin\{(?<env> pspicture\*?| psgraph)\} .+? \\end\{\k<env>\}
-                   )
-                 /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
-}
-
+### Pass all postscript environments [skip in PSTexample]
 Log("Pass all postscript environments to \\begin{$wrapping} ... \\end{$wrapping}");
-$document =~ s/\\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+$document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+               \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
                \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                (?:\\begin\{postscript\})(?:\s*\[ [^]]*? \])?
                    (?<code>.+?)
                (?:\\end\{postscript\})
               /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
 
+### Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
 Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
-$document =~ s/\\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
-               \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
-               ($extr_tmp)/\\begin\{$wrapping\}$1\\end\{$wrapping\}/gmsx;
+if ($force) {
+    # Try to capture \psset{...} for pstricks and psgraph [force]
+    Log('Capture \psset{...} for pstricks environments [force mode]');
+    $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+                   \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+                   \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
+                   \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
+                    (?<code>
+                     (?:\\psset\{(?:\{.*?\}|[^\{])*\}.+?)?  # if exist ...save
+                     \\begin\{(?<env> pspicture\*?| psgraph)\} .+? \\end\{\k<env>\}
+                    )
+                  /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
+}
+else {
+    Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
+    $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
+                   \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
+                   \\begin\{$wrapping\}.+?\\end\{$wrapping\}(*SKIP)(*F)|
+                   ($extr_tmp)/\\begin\{$wrapping\}$1\\end\{$wrapping\}/gmsx;
+}
 
 ### All environments are now classified:
 ### Extraction  ->  \begin{$wrapping} ... \end{$wrapping}
@@ -1215,30 +1248,28 @@ my $fileEXA = $exaNo > 1 ? 'files'
 if ($exaNo!=0) {
     $PSTexa = 1;
     Log("Found $exaNo $envEXA in $name$ext");
-    my $fig = 1;
+    my $figNo = 1;
     for my $item (@exa_extract) {
-        Logline("%##### PSTexample environment captured number $fig ######%");
+        Logline("%##### PSTexample environment captured number $figNo ######%");
         Logline($item);
-        $fig++;
+        $figNo++;
     }
     # Add [graphic={[...]...}] to \begin{PSTexample}[...]
     Log('Append [graphic={[...]...}] to \begin{PSTexample}[...]');
-    $exaNo = 1;
+    $figNo = 1;
     while ($bodydoc =~ /\\begin\{$wrapping\}(\s*)?\\begin\{PSTexample\}(\[.+?\])?/gsm) {
         my $swpl_grap = "graphic=\{\[scale=1\]$imgdir/$name-fig-exa";
         my $corchetes = $1;
         my ($pos_inicial, $pos_final) = ($-[1], $+[1]);
         if (not $corchetes) { $pos_inicial = $pos_final = $+[0]; }
         if (not $corchetes  or  $corchetes =~ /\[\s*\]/) {
-            $corchetes = "[$swpl_grap-$exaNo}]";
+            $corchetes = "[$swpl_grap-$figNo}]";
         }
-        else { $corchetes =~ s/\]/,$swpl_grap-$exaNo}]/; }
+        else { $corchetes =~ s/\]/,$swpl_grap-$figNo}]/; }
         substr($bodydoc, $pos_inicial, $pos_final - $pos_inicial) = $corchetes;
         pos($bodydoc) = $pos_inicial + length $corchetes;
     }
-    continue { $exaNo++; }
-    # Reset exaNo
-    $exaNo = scalar @exa_extract;
+    continue { $figNo++; }
     Log('Pass PSTexample environments to \begin{nopreview} ... \end{nopreview}');
     $bodydoc =~ s/\\begin\{$wrapping\}
                     (?<code>\\begin\{PSTexample\} .+? \\end\{PSTexample\})
@@ -1331,10 +1362,10 @@ my $quiet = $verbose ? q{}
 my %opt_gs_dev = (
     pdf  => '-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=pdfwrite',
     gray => '-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sColorConversionStrategy=Gray -sProcessColorModel=DeviceGray',
-    png  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r $dpi",
-    bmp  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=bmp32b -r $dpi",
-    jpg  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -r $dpi -dJPEGQ=100 -dGraphicsAlphaBits=4 -dTextAlphaBits=4",
-    tif  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=tiff32nc -r $dpi",
+    png  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r$dpi",
+    bmp  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=bmp32b -r$dpi",
+    jpg  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -r$dpi -dJPEGQ=100 -dGraphicsAlphaBits=4 -dTextAlphaBits=4",
+    tif  => "-dNOSAFER -dBATCH -dNOPAUSE -sDEVICE=tiff32nc -r$dpi",
     );
 
 ### Set poppler-utils executables
@@ -1464,7 +1495,7 @@ my $CORCHETES = qr/\[ [^]]*? \]/x;
 my $PALABRAS = qr/\b (?: preview )/x;
 my $FAMILIA  = qr/\{ \s* $PALABRAS (?: \s* [,] \s* $PALABRAS )* \s* \}(\%*)?/x;
 
-Log("Remove preview package in preamble ");
+Log('Remove preview package in preamble [in memory]');
 $preamout =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                ^ $USEPACK (?: $CORCHETES )? $FAMILIA \s*//msxg;
 $preamout =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
@@ -1485,7 +1516,7 @@ $tmpbodydoc =~ s/\\begin\{nopreview\}\%$tmp
 $tmpbodydoc =~ s/\\begin\{$wrapping\}
                     (?<code>.+?)
                   \\end\{$wrapping\}
-                /\\begin\{$wrapping\}$+{code}\n\\end\{$wrapping\}/gmsx;
+                /\\begin\{$wrapping\}\n$+{code}\n\\end\{$wrapping\}/gmsx;
 
 ### Reverse changes for temporary file with all env (no in -exa file)
 $tmpbodydoc =~ s/($find)/$replace{$1}/g;
@@ -1502,15 +1533,28 @@ $sub_prea = $noprew ? "$atbeginout$pstpdfpkg$preamout".'\begin{document}'
 ### Create a one file whit "all" PSTexample environments extracted
 if ($PSTexa) {
     @exa_extract = undef;
-    Infoline("Creating $name-fig-exa-$tmp$ext whit $exaNo $envEXA extracted");
-    Log("Adding packages to $name-fig-exa-$tmp$ext");
+    Log("Adding packages to $name-fig-exa-$tmp$ext [in memory]");
     Logline($pstpdfpkg);
+    Log('Convert plain Tex syntax for pspicture and psgraph to LaTeX syntax in PSTexample environments');
+    while ($tmpbodydoc =~ m/$BE\[.+? $imgdir\/.+?-\d+\}\] .+?$EE/pgsmx ) { # search
+        my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
+        my $encontrado = ${^MATCH};
+        $encontrado =~ s/\\pspicture(\*)?(.+?)\\endpspicture/\\begin\{pspicture$1\}$2\\end\{pspicture$1\}/gmsx;
+        $encontrado =~ s/\\psgraph(\*)?(.+?)\\endpsgraph/\\begin\{psgraph$1\}$2\\end\{psgraph$1\}/gmsx;
+        substr $tmpbodydoc, $pos_inicial, $pos_final-$pos_inicial, $encontrado;
+        pos ($tmpbodydoc) = $pos_inicial + length $encontrado;
+    }
+    # Write file
+    Infoline("Creating $name-fig-exa-$tmp$ext whit $exaNo $envEXA extracted");
     while ($tmpbodydoc =~ m/$BE\[.+? $imgdir\/.+?-\d+\}\](?<exa_src>.+?)$EE/gmsx ) { # search
         push @exa_extract, $+{'exa_src'}."\\newpage\n";
         open my $allexaenv, '>', "$name-fig-exa-$tmp$ext";
             print {$allexaenv} "$atbeginout$pstpdfpkg$preamout".'\begin{document}'."@exa_extract"."\\end\{document\}";
         close $allexaenv;
     }
+    # Remove [graphic={...}] in PSTexample example environments
+    $tmpbodydoc =~ s/($BE)(?:\[graphic=\{\[scale=1\]$imgdir\/.+?-\d+\}\])/$1/gmsx;
+    $tmpbodydoc =~ s/($BE\[.+?)(?:,graphic=\{\[scale=1\]$imgdir\/.+?-\d+\})(\])/$1$2/gmsx;
     if ($norun) {
         Infoline("Moving and renaming $name-fig-exa-$tmp$ext");
         if ($verbose) {
@@ -1524,10 +1568,6 @@ if ($PSTexa) {
         or die "* Error!!: Couldn't be renamed $name-fig-exa-$tmp$ext to $imgdir/$name-fig-exa-all$ext";
     }
 }
-
-### Remove \begin{PSTexample}[graphic={...}]
-$tmpbodydoc =~ s/($BE)(?:\[graphic=\{\[scale=1\]$imgdir\/.+?-\d+\}\])/$1/gmsx;
-$tmpbodydoc =~ s/($BE\[.+?)(?:,graphic=\{\[scale=1\]$imgdir\/.+?-\d+\})(\])/$1$2/gmsx;
 
 ### Create a one file whit "all" standard environments extracted
 if ($STDenv) {
@@ -2111,7 +2151,6 @@ DESPUES DEBO MIGRAR LOS CAMBIOS A LTXIMG :)
 Falta
 1. Logear TODAS las opciones
 2. Reescribir --help
-3. Hacer fake la opción --clear (ya no es necesaria)
 4. Documentar TODOS los cambios
 
 
