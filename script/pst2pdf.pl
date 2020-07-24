@@ -1,26 +1,22 @@
 #!/usr/bin/env perl
 use v5.26;
 
-# $Id: pst2pdf.pl 119 2014-09-24 12:04:09Z herbert $
-# v0.19    2020-07-20 simplify the use of PSTricks with pdf
-# (c) Herbert Voss <hvoss@tug.org>
-#     Pablo González Luengo <pablgonz@yahoo.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or (at
-# your option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the
-# Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA  02111-1307  USA
-#
+############################# LICENCE ##################################
+# $Id: pst2pdf.pl 119 2014-09-24 12:04:09Z herbert $                   #
+# v0.19  2020-07-20 simplify the use of PSTricks with pdf              #
+# (c) Herbert Voss <hvoss@tug.org>                                     #
+#     Pablo González Luengo <pablgonz@yahoo.com>                       #
+#                                                                      #
+# This program is free software; you can redistribute it and/or modify #
+# it under the terms of the GNU General Public License as published by #
+# the Free Software Foundation; either version 3 of the License, or    #
+# (at your option) any later version.                                  #
+#                                                                      #
+# This program is distributed in the hope that it will be useful, but  #
+# WITHOUT ANY WARRANTY; without even the implied warranty of           #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU    #
+# General Public License for more details.                             #
+########################################################################
 
 use Getopt::Long qw(:config bundling_override no_ignore_case); # require_order
 use File::Spec::Functions qw(catfile devnull);
@@ -148,8 +144,8 @@ sub Infocolor {
         color('yellow'), "$info\r\n", color('reset');
     }
     if ($type eq 'Finish') {
-        print color('yellow'), '* ', color('reset'), color('bold red'),
-        "$type!: ", color('reset'),  color('yellow'), "$info\r\n",color('reset');
+        print color('cyan'), '* ', color('reset'), color('magenta'),
+        "$type!: ", color('reset'),  color('green'), "$info\r\n",color('reset');
     }
     return;
 }
@@ -262,38 +258,58 @@ sub usage {
 find_ghostscript();
 
 my $usage = <<"END_OF_USAGE";
-${title}Usage: $scriptname [options] <texfile.tex>
-or $scriptname <texfile.tex>  [options]
-pst2pdf run a TeX source, read all PS-related part and convert in images
-    in pdf,eps,jpg,svg or png format (default pdf) and create new file
-    whitout pst-environments and runs (pdf/Xe/lua)latex.
-    See texdoc pst2pdf for full documentation.
+${title}
+    pst2pdf run a TeX source, read all postscript, pspicture, psgraph
+    and PSTexample environments and convert in images pdf,eps,jpg,svg
+    or png format (default pdf), extract source code and create new
+    file whit all environments converted to \\includegraphics and runs
+    (pdf/Xe/lua)latex.
 
-** Options
-                                                                    [default]
--l, --log             Write .log file with debug information        [off]
--h, --help            Display command line help and exit            [off]
--v, --version         Display current version ($nv) and exit       [off]
--V, --Verbose         Verbose printing information                  [off]
--t, --tif             Create .tif files using ghostscript           [$gscmd]
--b, --bmp             Create .bmp files using ghostscript           [$gscmd]
--j, --jpg             Create .jpg files using ghostscript           [$gscmd]
--p, --png             Create .png files using ghostscript           [$gscmd]
-  -d,--dpi=<int>     - the dots per inch for images (default 300)
-  -e,--eps           - create .eps files (need pdftops)
-  -s,--svg           - create .svg files (need pdftocairo)
-  -P,--ppm           - create .ppm files (need pdftoppm)
-  -a,--all           - create .(pdf,eps,jpg,png,ppm,svg) images
-  -c,--clear         - delete all temp and aux files
-  -x,--xetex         - using (Xe)LaTeX for create images
-  -m,--margins=<int> - Ser margins (in bp) for pdfcrop (default 1)
-  -ni,--noimages     - Generate file-pdf.tex, but not images
-  -np,--single, --noprew       - create images files whitout preview pkg
+Usage: $scriptname [<compiler>] [<options>] <texfile.tex>
+       $scriptname <texfile.tex> [<compiler>] [options]
+
+   If used without [<compiler>] and [<options>] the extracted environments
+   are converted to pdf image format and saved in the "./images" directory
+   using latex>dvips>ps2pdf and preview package to process <input file> and
+   pdflatex for compiler <output file>.
+
+Options:
+                                                                 [default]
+  -l, --log          Write .log file with debug information      [off]
+  -h, --help         Display command line help and exit          [off]
+  -v, --version      Display current version ($nv) and exit    [off]
+  -V, --verbose      Verbose printing information                [off]
+  -t, --tif          Create .tif files using ghostscript         [$gscmd]
+  -b, --bmp          Create .bmp files using ghostscript         [$gscmd]
+  -j, --jpg          Create .jpg files using ghostscript         [$gscmd]
+  -p, --png          Create .png files using ghostscript         [$gscmd]
+  -e, --eps          Create .eps files using poppler-utils       [pdftops]
+  -s, --svg          Create .svg files using poppler-utils       [pdftocairo]
+  -P, --ppm          Create .ppm files using poppler-utils       [pdftoppm]
+  -g, --gray         Gray scale for images using ghostscript     [off]
+  -f, --force        Try to capture \\psset{...} to extract       [off]
+  -d <integer>, --dpi <integer>
+                     Dots per inch resolution for images         [150]
+  -r <integer>, --runs <integer>
+                     Set the number of times the compiler will run
+                     on the input file for extraction            [1]
+  -np, --noprew, --single
+                     Create images files whitout "preview" package [off]
+  --srcenv           Create files whit only code environment     [off]
   -ns,--nosource     - delete all source(.tex) for images files
-  --imgdir=<string>  - the folder for the created images (default images)
-  --ignore=<string>  - add other's verbatim environments (default other)
-  --bibtex           - run bibtex on the aux file, if exists
-  --biber            - run biber on the bcf file, if exists
+  -ni,--norun, --noimages
+                     Generate file-pdf.tex, but not images
+
+
+  -m <integer>, --margins <integer>
+                     Set margins in bp for pdfcrop                [0]
+  --imgdir <dirname> Set name of directory to save images/files   [images]
+  --myverb <macro>   Add "\\macroname" to verbatim inline search   [myverb]
+  --zip              Compress generated files in .zip format       [off]
+  --tar              Compress generated files in .tar.gz format    [off]
+  -x,--xetex         - using (Xe)LaTeX for create images
+  --bibtex           Run bibtex on the .aux file (if exists)
+  --biber            Run biber on the .bcf file (if exists)
 
 Examples:
 * $scriptname test.tex -e -p -j -c --imgdir=pics
@@ -301,6 +317,7 @@ Examples:
 * dir whit all images (pdf,eps,png,jpg) and source (.tex) for all pst
 * environment in "./pics" dir using Ghostscript and cleaning all tmp files.
 * Suport bundling for short options $scriptname test.tex -epjc --imgdir=pics
+See texdoc pst2pdf for full documentation.
 END_OF_USAGE
 print $usage;
 exit 0;
@@ -317,7 +334,7 @@ my $result=GetOptions (
     'm|margins=i'        => \$margins,  # numeric
     'imgdir=s'           => \$imgdir,   # string
     'myverb=s'           => \$myverb,   # string
-    'ignore=s'           => \$tmpverbenv, # string separate by comma
+    'ignore=s'           => \$tmpverbenv, # string
     'c|clear'            => \$clear,    # flag
     'ni|noimages|norun'  => \$norun,    # flag
     'np|single|noprew'   => \$noprew,   # flag
@@ -354,7 +371,7 @@ if ($log) {
     $LogWrite  = FileHandle->new("> $LogFile");
 }
 
-### Init log file
+### Init pst2pdf.log file
 Log("The script $scriptname $nv was started in $workdir");
 Log("Creating the temporary directory $tempDir");
 
@@ -393,7 +410,9 @@ if ($tmpverbenv =~ /^(?:\\|\-).+?/) {
     Log('Error!!: Invalid argument for --ignore option, argument begin with \ or -');
     errorUsage('Invalid argument for --ignore');
 }
-else { @verb_env_tmp = $tmpverbenv; }
+
+### If $tmpverbenv is valid pass to @verb_env_tmp
+if ($tmpverbenv) { @verb_env_tmp = $tmpverbenv; }
 
 ### Make ENV safer, see perldoc perlsec
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
@@ -1166,10 +1185,10 @@ $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
               /\\begin\{$wrapping\}$+{code}\\end\{$wrapping\}/gmsx;
 
 ### Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
-Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
 if ($force) {
     # Try to capture \psset{...} for pstricks and psgraph [force]
-    Log('Capture \psset{...} for pstricks environments [force mode]');
+    Log('Try Capture \psset{...} for pstricks environments [force mode]');
+    Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping} [force mode]");
     $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                    \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
                    \\begin\{PSTexample\}.+?\\end\{PSTexample\}(*SKIP)(*F)|
@@ -1225,12 +1244,8 @@ my @exa_extract = $bodydoc =~ m/(?:\\begin\{$wrapping\})($BE.+?$EE)(?:\\end\{$wr
 my $exaNo = scalar @exa_extract;
 
 ### Set vars for log and print in terminal
-my $envEXA = $exaNo > 1 ? 'PSTexample environments'
-           :              'PSTexample environment'
-           ;
-my $fileEXA = $exaNo > 1 ? 'files'
-            :              'file'
-            ;
+my $envEXA  = $exaNo > 1 ? 'PSTexample environments' : 'PSTexample environment';
+my $fileEXA = $exaNo > 1 ? 'files' : 'file';
 
 ### If PSTexample environment found
 if ($exaNo!=0) {
@@ -1270,12 +1285,8 @@ my @env_extract = $bodydoc =~ m/(?:$BP)(.+?)(?:$EP)/gmsx;
 my $envNo = scalar @env_extract;
 
 ### Set vars for log and print in terminal
-my $envSTD = $envNo > 1 ? 'pstricks environments'
-           :              'pstricks environment'
-           ;
-my $fileSTD = $envNo > 1 ? 'files'
-            :              'file'
-            ;
+my $envSTD  = $envNo > 1 ? 'pstricks environments' : 'pstricks environment';
+my $fileSTD = $envNo > 1 ? 'files' : 'file';
 
 ### If any pstricks environments found
 if ($envNo!=0) {
@@ -1365,9 +1376,7 @@ my $opt_crop = $xetex ?  "--xetex  --margins $margins"
              ;
 
 ### Set options for preview package
-my $opt_prew = $xetex ? 'xetex,'
-             :          q{}
-             ;
+my $opt_prew = $xetex ? 'xetex,' : q{};
 
 ### Set message in terminal
 my $msg_compiler = $xetex ?  'xelatex'
@@ -1507,9 +1516,7 @@ my $previewpkg = <<"EXTRA";
 \\PassOptionsToPackage\{inactive\}\{pst-pdf\}%
 \\AtBeginDocument\{%
 \\RequirePackage\[inactive\]\{pst-pdf\}%
-\\newenvironment\{$wrapping\}[1][]\{\\ignorespaces\}\{\}%
 \\RequirePackage\[${opt_prew}active,tightpage\]\{preview\}%
-\\PreviewEnvironment\{$wrapping\}
 \\renewcommand\\PreviewBbAdjust\{-60pt -60pt 60pt 60pt\}\}%
 EXTRA
 
@@ -1528,7 +1535,7 @@ my $CORCHETES = qr/\[ [^]]*? \]/x;
 my $PALABRAS = qr/\b (?: preview )/x;
 my $FAMILIA  = qr/\{ \s* $PALABRAS (?: \s* [,] \s* $PALABRAS )* \s* \}(\%*)?/x;
 
-Log('Remove preview package in preamble [in memory]');
+Log('Remove preview package in preamble [memory]');
 $preamout =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                ^ $USEPACK (?: $CORCHETES )? $FAMILIA \s*//msxg;
 $preamout =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
@@ -1589,16 +1596,16 @@ if ($PSTexa) {
     $tmpbodydoc =~ s/($BE)(?:\[graphic=\{\[scale=1\]$imgdir\/.+?-\d+\}\])/$1/gmsx;
     $tmpbodydoc =~ s/($BE\[.+?)(?:,graphic=\{\[scale=1\]$imgdir\/.+?-\d+\})(\])/$1$2/gmsx;
     if ($norun) {
-        Infoline("Moving and renaming $name-fig-exa-$tmp$ext");
+        Infoline("Moving and renaming $name-fig-exa-$tmp$ext to $name-fig-exa-all$ext");
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-exa-$tmp$ext $imgdirpath/$name-fig-exa-all$ext");
         }
         else {
-            Infocolor('Running', "mv $name-fig-exa-$tmp$ext $imgdir/$name-fig-exa-all$ext");
+            Infocolor('Running', "mv $name-fig-exa-$tmp$ext ./$imgdir/$name-fig-exa-all$ext");
         }
         Logline("[perl] move($workdir/$name-fig-exa-$tmp$ext, $imgdirpath/$name-fig-exa-all$ext)");
         move("$workdir/$name-fig-exa-$tmp$ext", "$imgdir/$name-fig-exa-all$ext")
-        or die "* Error!!: Couldn't be renamed $name-fig-exa-$tmp$ext to $imgdir/$name-fig-exa-all$ext";
+        or die "* Error!!: Couldn't be renamed $name-fig-exa-$tmp$ext to ./$imgdir/$name-fig-exa-all$ext";
     }
 }
 
@@ -1627,21 +1634,24 @@ if ($STDenv) {
         else {
             Log("Adding packages to $name-fig-$tmp$ext");
             Logline($previewpkg);
+            Log("Convert $wrapping to preview environments in $name-fig-$tmp$ext");
+            # Convert $wrapping to preview environments
+            $tmpbodydoc =~ s/\\begin\{$wrapping\}(?<code>.+?)\\end\{$wrapping\}
+                            /\\begin\{preview\}\n$+{code}\n\\end\{preview\}/gmsx;
             print {$allstdenv} $sub_prea.$tmpbodydoc."\n\\end{document}";
-
         }
     close $allstdenv;
     if ($norun) {
-        Infoline("Moving and renaming $name-fig-$tmp$ext");
+        Infoline("Moving and renaming $name-fig-$tmp$ext to $name-fig-all$ext");
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-$tmp$ext $imgdirpath/$name-fig-all$ext");
         }
         else {
-            Infocolor('Running', "mv $name-fig-$tmp$ext $imgdir/$name-fig-all$ext");
+            Infocolor('Running', "mv $name-fig-$tmp$ext ./$imgdir/$name-fig-all$ext");
         }
         Logline("[perl] move($workdir/$name-fig-$tmp$ext, $imgdirpath/$name-fig-all$ext)");
         move("$workdir/$name-fig-$tmp$ext", "$imgdir/$name-fig-all$ext")
-        or die "* Error!!: Couldn't be renamed $name-fig-$tmp$ext to $imgdir/$name-fig-all$ext";
+        or die "* Error!!: Couldn't be renamed $name-fig-$tmp$ext to ./$imgdir/$name-fig-all$ext";
     }
 }
 
@@ -1663,14 +1673,14 @@ opendir (my $DIR, $workdir);
                 RUNOSCMD("dvips $quiet -Ppdf", "-o $+{name}-$tmp.ps $+{name}-$tmp.dvi",'show');
                 RUNOSCMD("ps2pdf -sPDFSETTINGS=prepress -sAutoRotatePages=None", "$+{name}-$tmp.ps  $+{name}-$tmp.pdf",'show');
             }
-            # Moving and renaming tmp file(s) with source code
+            # Moving and renaming temp files with source code
             Log("Move $+{name}$+{type} file whit all source for environments to $imgdirpath");
-            Infoline("Moving and renaming $+{name}$+{type}");
+            Infoline("Moving and renaming $+{name}$+{type} to $+{name}-all$ext");
             if ($verbose){
                 Infocolor('Running', "mv $workdir/$+{name}$+{type} $imgdirpath/$+{name}-all$ext");
             }
             else {
-                Infocolor('Running', "mv $+{name}$+{type} $imgdir/$+{name}-all$ext");
+                Infocolor('Running', "mv $+{name}$+{type} ./$imgdir/$+{name}-all$ext");
             }
             Logline("[perl] move($workdir/$+{name}$+{type}, $imgdirpath/$+{name}-all$ext)");
             move("$workdir/$+{name}$+{type}", "$imgdir/$+{name}-all$ext")
@@ -2063,37 +2073,6 @@ if (!$norun) {
     }
 }
 
-### Compress "./images" with generated files
-my $archivetar;
-if ($zip or $tar) {
-    my $stamp = strftime("%Y-%m-%d", localtime);
-    $archivetar = "$imgdir-$stamp";
-
-    my @savetozt;
-    find(\&zip_tar, $imgdir);
-    sub zip_tar{
-        my $filesto = $_;
-        if (-f $filesto && $filesto =~ m/$name-fig-.+?$/) { # search
-            push @savetozt, $File::Find::name;
-        }
-        return;
-    }
-    Log('The files are compress are:');
-    Logarray(\@savetozt);
-    if ($zip) {
-        Infoline("Creating the file $archivetar.zip");
-        zip \@savetozt => "$archivetar.zip";
-        Log("The file $archivetar.zip are in $workdir");
-    }
-    if ($tar) {
-        Infoline("Creating the file $archivetar.tar.gz");
-        my $imgdirtar = Archive::Tar->new();
-        $imgdirtar->add_files(@savetozt);
-        $imgdirtar->write( "$archivetar.tar.gz" , 9 );
-        Log("The file $archivetar.tar.gz are in $workdir");
-    }
-}
-
 ### Remove temporary files
 my @tmpfiles;
 my @protected = qw();
@@ -2103,6 +2082,7 @@ my @flsfile;
 ### Protect generated files
 push @protected, "$name-pdf$ext", "$name-pdf.pdf";
 
+### Find files
 find(\&aux_files, $workdir);
 sub aux_files{
     my $findtmpfiles = $_;
@@ -2112,6 +2092,10 @@ sub aux_files{
     return;
 }
 
+### Add if exists
+if (-e 'arara.log') {
+    push @flsfile, 'arara.log';
+}
 if (-e "$name-fig-$tmp.fls") {
     push @flsfile, "$name-fig-$tmp.fls";
 }
@@ -2122,6 +2106,7 @@ if (-e "$name-pdf.fls") {
     push @flsfile, "$name-pdf.fls";
 }
 
+### Read .fls file
 for my $filename(@flsfile){
     open my $RECtmp, '<', $filename;
         push @tmpfiles, grep /^$flsline/,<$RECtmp>;
@@ -2137,7 +2122,7 @@ push @tmpfiles, @flsfile;
 Log('The files that will be deleted are:');
 Logarray(\@tmpfiles);
 
-### Only If exist
+### Remove only if exist
 if (@tmpfiles) {
     Infoline("Remove temporary files created in $workdir");
     foreach my $tmpfiles (@tmpfiles) {
@@ -2155,7 +2140,7 @@ if (-e $mintdirexa) { push @deldirs, $mintdirexa; }
 Log('The directory that will be deleted are:');
 Logarray(\@deldirs);
 
-### Only If exist
+### Remove only if exist
 if (@deldirs) {
     Infoline("Remove temporary directories created by minted in $workdir");
     foreach my $deldirs (@deldirs) {
@@ -2163,30 +2148,57 @@ if (@deldirs) {
     }
 }
 
+### Compress "./images" with generated files
+my $archivetar;
+if ($zip or $tar) {
+    my $stamp = strftime("%Y-%m-%d", localtime);
+    $archivetar = "$imgdir-$stamp";
+
+    my @savetozt;
+    find(\&zip_tar, $imgdir);
+    sub zip_tar{
+        my $filesto = $_;
+        if (-f $filesto && $filesto =~ m/$name-fig-.+?$/) { # search
+            push @savetozt, $File::Find::name;
+        }
+        return;
+    }
+    Log("The files are compress found in $imgdirpath are:");
+    Logarray(\@savetozt);
+    if ($zip) {
+        print "Creating the file ", color('yellow'), "[$archivetar.zip]",
+        color('reset'), " with generate files in ./$imgdir\r\n";
+        zip \@savetozt => "$archivetar.zip";
+        Log("The file $archivetar.zip are in $workdir");
+    }
+    if ($tar) {
+        print "Creating the file ", color('yellow'), "[$archivetar.tar.gz]",
+        color('reset'), " with generate files in ./$imgdir\r\n";
+        my $imgdirtar = Archive::Tar->new();
+        $imgdirtar->add_files(@savetozt);
+        $imgdirtar->write( "$archivetar.tar.gz" , 9 );
+        Log("The file $archivetar.tar.gz are in $workdir");
+    }
+}
+
 ### End of script process
-if (!$norun and ($opts_cmd{boolean}{srcenv} or $opts_cmd{boolean}{subenv})) {
-    Log("The image file(s): $format and subfile(s) are in $imgdirpath");
+if (!$norun && !$nosource) {
+    Log("The image files: $format and generated files are in $imgdirpath");
 }
-if (!$norun and (!$opts_cmd{boolean}{srcenv} and !$opts_cmd{boolean}{subenv})) {
-    Log("The image file(s): $format are in $imgdirpath");
+if (!$norun && $nosource) {
+    Log("The image files: $format are in $imgdirpath");
 }
-if ($norun and ($opts_cmd{boolean}{srcenv} or $opts_cmd{boolean}{subenv})) {
-    Log("The subfile(s) are in $imgdirpath");
+if ($norun && !$nosource) {
+    Log("The generated files are in $imgdirpath");
 }
-Log("The file $name-pdf$ext are in $workdir");
+Log("The output file $name-pdf$ext are in $workdir");
 
 Infocolor('Finish', "The execution of $scriptname has been successfully completed");
 
 Log("The execution of $scriptname has been successfully completed");
 
 __END__
-DESPUES DEBO MIGRAR LOS CAMBIOS A LTXIMG :)
 Falta
-2. Reescribir --help
-4. Documentar TODOS los cambios
+1. Terminar de reescribir --help
+2. Documentar TODOS los cambios
 
-
-if ($all) {
-  LOG ("Generate images eps/pdf/files and clear...");
-   $eps =$ppm=$jpg=$png=$svg=$clear = 1;
-}
