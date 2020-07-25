@@ -81,6 +81,7 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
+my $date       = '2020-07-24';
 my $ident      = '$Id: pst2pdf.pl 119 2020-07-24 12:04:09Z herbert $';
 
 ### Log vars
@@ -241,8 +242,8 @@ sub RUNOSCMD {
 }
 
 ### General information
-my $copyright = <<'END_COPYRIGHT' ;
-Copyright 2011-2020 (c) Herbert Voss <hvoss@tug.org> and Pablo González.
+my $copyright = <<"END_COPYRIGHT" ;
+[$date] (c) Herbert Voss <hvoss@tug.org> and Pablo González.
 END_COPYRIGHT
 
 my $versiontxt= <<"END_VERSION" ;
@@ -671,7 +672,6 @@ if (defined $help) {
 
 ### Version
 if (defined $version) {
-    #print $title;
     print $versiontxt;
     exit 0;
 }
@@ -928,7 +928,7 @@ if (@mint_cline) {
 }
 
 ### Add standart mint, mintinline and lstinline
-my @mint_tmp = qw(mint  mintinline lstinline);
+my @mint_tmp = qw(mint mintinline lstinline);
 
 ### Join all inline verbatim macros captured
 push @mintline, @mint_tmp;
@@ -1189,7 +1189,7 @@ $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
 ### Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping}");
 if ($force) {
     # Try to capture \psset{...} for pstricks and psgraph [force]
-    Log('Try Capture \psset{...} for pstricks environments [force mode]');
+    Log('Try to capture \psset{...} for pstricks environments [force mode]');
     Log("Pass all pstricks environments to \\begin{$wrapping} ... \\end{$wrapping} [force mode]");
     $document =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                    \\begin\{nopreview\}.+?\\end\{nopreview\}(*SKIP)(*F)|
@@ -1325,7 +1325,6 @@ if ($arara) { $opts_cmd{compiler}{arara} = 1; }
 if ($latexmk) { $opts_cmd{compiler}{latexmk} = 1; }
 if ($luatex) { $opts_cmd{compiler}{luatex} = 1; }
 if ($xetex) { $opts_cmd{compiler}{xetex} = 1; }
-if ($xetex) { $opts_cmd{compiler}{xetex} = 1; }
 if ($tmpverbenv) { $opts_cmd{string}{ignore} = $tmpverbenv; }
 $opts_cmd{string}{myverb} = $myverb;
 $opts_cmd{string}{dpi} = $dpi;
@@ -1343,7 +1342,7 @@ foreach my $key (keys %{$opts_cmd{image}}) {
     if (defined $opts_cmd{image}{$key}) { push @currentopt, "--$key"; }
 }
 foreach my $key (keys %{$opts_cmd{string}}) {
-    if (defined $opts_cmd{string}{$key}) { push @currentopt, "--$key=$opts_cmd{string}{$key}"; }
+    if (defined $opts_cmd{string}{$key}) { push @currentopt, "--$key $opts_cmd{string}{$key}"; }
 }
 
 @currentopt = grep !/--pdf/, @currentopt;
@@ -1544,7 +1543,7 @@ $preamout =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                (?: ^ $USEPACK \{ | \G) [^}]*? \K (,?) \s* $PALABRAS (\s*) (,?) /$1 and $3 ? ',' : $1 ? $2 : ''/gemsx;
 $preamout =~ s/^\\usepackage\{\}(?:[\t ]*(?:\r?\n|\r))+/\n/gmsx;
 
-### Remove %<*$dtxverb> ... %</$dtxverb> in bodyout and preamout
+### Remove %<*$dtxverb> ... %</$dtxverb> in tmpbodydoc and preamout
 $tmpbodydoc =~ s/\%<\*$dtxverb>(.+?)\%<\/$dtxverb>/$1/gmsx;
 $preamout   =~ s/\%<\*$dtxverb>(.+?)\%<\/$dtxverb>/$1/gmsx;
 
@@ -1626,7 +1625,7 @@ if ($STDenv) {
     open my $allstdenv, '>', "$name-fig-$tmp$ext";
         if ($noprew) {
             my @env_extract;
-            while ($tmpbodydoc =~ m/(?:\\begin\{$wrapping\})(?<env_src>.+?)(?:\\end\{$wrapping\})/gms) {
+            while ($tmpbodydoc =~ m/(?:$BP)(?<env_src>.+?)(?:$EP)/gms) {
                 push @env_extract,$+{'env_src'}."\\newpage\n";
             }
             Log("Adding packages to $name-fig-$tmp$ext");
@@ -1639,7 +1638,7 @@ if ($STDenv) {
             Log("Convert $wrapping to preview environments in $name-fig-$tmp$ext");
             # Convert $wrapping to preview environments
             $tmpbodydoc =~ s/\\begin\{$wrapping\}(?<code>.+?)\\end\{$wrapping\}
-                            /\\begin\{preview\}\n$+{code}\n\\end\{preview\}/gmsx;
+                            /\\begin\{preview\}\n$+{code}\n\\end\{preview\}\n/gmsx;
             print {$allstdenv} $sub_prea.$tmpbodydoc."\n\\end{document}";
         }
     close $allstdenv;
@@ -2202,7 +2201,5 @@ Infocolor('Finish', "The execution of $scriptname has been successfully complete
 Log("The execution of $scriptname has been successfully completed");
 
 __END__
-Falta
-1. Terminar de reescribir --help
-2. Documentar TODOS los cambios
-
+1. Terminar de reescribir --help, falta poco en esta sección.
+2. Crear build.lua, documentar TODOS los cambios (aun no he resuelto esto)
