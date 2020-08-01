@@ -243,7 +243,7 @@ sub RUNOSCMD {
 
 ### General information
 my $copyright = <<"END_COPYRIGHT" ;
-[$date] (c) Herbert Voss <hvoss@tug.org> and Pablo González.
+[$date] (c) Herbert Voss <hvoss\@tug.org> and Pablo González.
 END_COPYRIGHT
 
 my $versiontxt= <<"END_VERSION" ;
@@ -1307,7 +1307,7 @@ if ($envNo == 0 and $exaNo == 0) {
     errorUsage("$scriptname can not find any environment to extract in $name$ext");
 }
 
-### Storing the current options of script process for log file
+### Storing ALL current options of script process for .log file
 if ($zip) { $opts_cmd{boolean}{zip} = 1; }
 if ($tar) { $opts_cmd{boolean}{tar} = 1; }
 if ($nopdf) { $opts_cmd{boolean}{nopdf} = 1; }
@@ -1598,6 +1598,10 @@ if ($PSTexa) {
     $tmpbodydoc =~ s/($BE\[.+?)(?:,graphic=\{\[scale=1\]$imgdir\/.+?-\d+\})(\])/$1$2/gmsx;
     if ($norun) {
         Infoline("Moving and renaming $name-fig-exa-$tmp$ext to $name-fig-exa-all$ext");
+        if (-e "$imgdir/$name-fig-exa-all$ext") {
+            Infocolor('Warning', "The file [$name-fig-exa-all$ext] already exists and will be rewritten");
+            Log("Rewriting the file $name-fig-exa-all$ext in $imgdirpath");
+        }
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-exa-$tmp$ext $imgdirpath/$name-fig-exa-all$ext");
         }
@@ -1644,6 +1648,10 @@ if ($STDenv) {
     close $allstdenv;
     if ($norun) {
         Infoline("Moving and renaming $name-fig-$tmp$ext to $name-fig-all$ext");
+        if (-e "$imgdir/$name-fig-all$ext") {
+            Infocolor('Warning', "The file [$name-fig-all$ext] already exists and will be rewritten");
+            Log("Rewriting the file $name-fig-all$ext in $imgdirpath");
+        }
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-$tmp$ext $imgdirpath/$name-fig-all$ext");
         }
@@ -1677,6 +1685,10 @@ opendir (my $DIR, $workdir);
             # Moving and renaming temp files with source code
             Log("Move $+{name}$+{type} file with all source for environments to $imgdirpath");
             Infoline("Moving and renaming $+{name}$+{type} to $+{name}-all$ext");
+            if (-e "$imgdir/$+{name}-all$ext") {
+                Infocolor('Warning', "The file [$+{name}-all$ext] already exists and will be rewritten");
+                Log("Rewriting the file $+{name}-all$ext in $imgdirpath");
+            }
             if ($verbose){
                 Infocolor('Running', "mv $workdir/$+{name}$+{type} $imgdirpath/$+{name}-all$ext");
             }
@@ -2169,18 +2181,30 @@ if ($zip or $tar) {
     Log("The files are compress found in $imgdirpath are:");
     Logarray(\@savetozt);
     if ($zip) {
-        print "Creating the file ", color('yellow'), "[$archivetar.zip]",
-        color('reset'), " with generate files in ./$imgdir\r\n";
+        if (-e "$archivetar.zip") {
+            Infocolor('Warning', "The file [$archivetar.zip] already exists and will be rewritten");
+            Log("Rewriting the file $archivetar.zip in $workdir");
+        }
+        else{
+            print "Creating the file ", color('magenta'), "[$archivetar.zip]",
+            color('reset'), " with generate files in ./$imgdir\r\n";
+            Log("Writen the file $archivetar.tar.gz in $workdir");
+        }
         zip \@savetozt => "$archivetar.zip";
-        Log("The file $archivetar.zip are in $workdir");
     }
     if ($tar) {
-        print "Creating the file ", color('yellow'), "[$archivetar.tar.gz]",
-        color('reset'), " with generate files in ./$imgdir\r\n";
+        if (-e "$archivetar.tar.gz") {
+            Infocolor('Warning', "The file [$archivetar.tar.gz] already exists and will be rewritten");
+            Log("Rewriting the file $archivetar.tar.gz in $workdir");
+        }
+        else{
+            print "Creating the file ", color('magenta'), "[$archivetar.tar.gz]",
+            color('reset'), " with generate files in ./$imgdir\r\n";
+            Log("Writen the file $archivetar.tar.gz in $workdir");
+        }
         my $imgdirtar = Archive::Tar->new();
         $imgdirtar->add_files(@savetozt);
         $imgdirtar->write( "$archivetar.tar.gz" , 9 );
-        Log("The file $archivetar.tar.gz are in $workdir");
     }
 }
 
