@@ -1,73 +1,110 @@
-% arara: latex: {draft: yes}
-% arara: latex
+% arara: lualatex: {draft: yes}
+% arara: lualatex
 % arara: biber
 % arara: makeindex
-% arara: latex
-% arara: latex
-% arara: dvips
-% arara: ps2pdf
+% arara: lualatex
+%! arara: lualatex
+%! arara: dvips
+%! arara: ps2pdf
 % arara: clean: { files:[PSTricks.bib,pst2pdf-doc.out, pst2pdf-doc.ps, pst2pdf-doc.toc,pst2pdf-doc.log,pst2pdf-doc.ind,pst2pdf-doc.aux, pst2pdf-doc.bbl, pst2pdf-doc.bcf, pst2pdf-doc.blg,pst2pdf-doc.dvi,pst2pdf-doc.idx,pst2pdf-doc.ilg,pst2pdf-doc.run.xml] }
-\documentclass[11pt,english,BCOR=10mm,DIV=12,bibliography=totoc,parskip=false,headings=small,
-    headinclude=false,footinclude=false,twoside]{pst-doc}
-
+%\documentclass[11pt,english,BCOR=10mm,DIV=12,bibliography=totoc,parskip=false,headings=small,
+    %headinclude=false,footinclude=false,twoside]{pst-doc}
+\documentclass[11pt,english,BCOR10mm,DIV12,bibliography=totoc,parskip=false,smallheadings
+    headexclude,footexclude,oneside]{pst-doc}
 \listfiles
 \let\Lfile\LFile
-\usepackage[utf8]{inputenc}
-\usepackage{pst-node}
-\let\pstnodeFV\fileversion
-\let\pstnodeFD\filedate
+% Identification
+\def\myscript{pst2pdf}
+\def\fileversion{1.8}
+\def\filedate{2020-08-08}
 \usepackage{biblatex}
-
 \addbibresource{\jobname.bib}
-
-\RequirePackage{xspace}
-\usepackage{pst-text,pst-grad}
-\let\pstFV\fileversion
-\DeclareFixedFont{\RM}{T1}{ptm}{b}{n}{4cm}
-%\renewcommand\bgImage{\pscharpath[fillstyle=gradient,
-  %gradbegin=red,gradend=blue,gradangle=-90]{\RM pst2pdf}}
-
 \lstset{language=PSTricks,basicstyle=\footnotesize\ttfamily}
 \def\DVI{\textsc{DVI}}
 \def\PDF{\textsc{PDF}}
 \def\gs{\textsc{Ghostscript}}
-%
+\usepackage{hologo} % LaTeX logos
+%%=== new macros ====================================================
+\makeatletter
+\def\Lscript#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Script!#1@\texttt{#1}}}
+\def\Losystem#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Operating system!#1@\texttt{#1}}}
+\makeatother
 \begin{document}
 
-\title{\texttt{pst2pdf}}
-\subtitle{Running a PSTricks document with pdflatex;\\  \small v. 0.18}
+\title{\texttt{\myscript}}
+\subtitle{Running a PSTricks document with pdflatex;\\  \small v\fileversion}
 \author{Herbert Voß  \\ Pablo Gonz\'{a}lez Luengo}
 \docauthor{}
-\date{\today}
+\date{\filedate}
+
 \maketitle
+
+\begin{abstract}
+    \texttt{\myscript} run a \TeX{} \Larga{source}, read all \Lenv{postscript}, \Lenv{pspicture}, \Lenv{psgraph}
+    and \Lenv{PSTexample} environments and convert in images pdf,eps,jpg,svg
+    or png format (default pdf), extract source code and create new
+    file with all environments converted to \Lcs{includegraphics} and runs
+    (pdf/Xe/lua)latex.
+\end{abstract}
 
 \tableofcontents
 
 \clearpage
+\newpage
 
 \section{Introduction}
+
 \PST\ as \PS\ related package uses the programming language \PS\ for internal
 calculations. This is an important advantage, because floating point arithmetic is no
 problem. Nearly all mathematical calculation can be done when running the \DVI-file
 with \gs. However, creating a \PDF\ file in a direct way with \Lprog{pdflatex} is
 not possible. \Lprog{pdflatex} cannot understand the \PS\ related stuff.
 
-Instead of running \Lprog{pdflatex} one can use the \Lprog{perl} \emph{script} \Lprog{pst2pdf}, it extracts
+Instead of running \Lprog{pdflatex} one can use the \Lprog{perl} \emph{script} \Lscript{pst2pdf}, it extracts
 all \PST\ related code into single documents with the same preamble as the original
 main document.
 
-The \nxLprog{pst2pdf} \emph{script} runs document, clips all whitespace around the
+The \Lscript{pst2pdf} \emph{script} runs document, clips all whitespace around the
 image and creates a \Lext{pdf} images of the \PST\ related code.
 
 In a last run which is the \Lprog{pdflatex} the \PST\ code in the
 main document is replaced by the created images.
 
+\section{License}
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the \href{https://www.gnu.org/licenses/gpl-3.0.html}{GNU General Public License} as published by
+the \href{https://www.fsf.org/}{Free Software Foundation}; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the \href{https://www.gnu.org/licenses/gpl-3.0.html}{GNU General Public License}
+for more details.
+
 \section{Requirements}
-\subsection{Programs needed}
-\nxLprog{pst2pdf} needs a latest version \Lprog{Ghostscript} (9.14), \Lprog{perl} (>=5.18), \Lprog{pdf2svg}, \Lprog{pdftoppm} and \Lprog{pdftops}
-(from \Lprog{poppler-utils} or \Lprog{xpdf-utils}) for the process file. If you need a create .pdf images whitout \Lprog{Ghostscript}, use single mode (see \ref{single}).
+
+For the complete operation of \Lscript{pst2pdf}{} you need to have a modern %
+\hologo{TeX} distribution such as \hologo{TeX} Live or \hologo{MiKTeX}, have
+a version equal to or greater than \liningnums{5.28} of \Lprog{perl}, a
+version equal to or greater than \liningnums{9.24} of \Lprog{Ghostscript}
+and have a version equal to or greater than \liningnums{0.52} of %
+\Lprog{poppler-utils}. The distribution of \hologo{TeX} Live 2020 for \Losystem{Windows} includes %
+\Lscript{pst2pdf} and all requirements, \hologo{MiKTeX} users must install the
+appropriate software for full operation.
+
+The script has been tested on \Losystem{Windows} (v10) and %
+\Losystem{Linux} (fedora 32) using \Lprog{Ghostscript} %
+\liningnums{v9.52}, \Lprog{poppler-utils} \liningnums{v0.84}, \Lprog{perl} \liningnums{v5.30}
+and the standard classes offers by \hologo{LaTeX}: \LClass{book},
+\LClass{report}, \LClass{article} and \LClass{letter}. The \LPack{preview} and
+\LPack{pst-pdf} packages are required to process the \Larga{input file} and if
+an \Larga{output file} is generated, the \LPack{graphicx} and \LPack{grfext}
+packages will be needed.
+
 
 \subsection{Preparating file}
+
 The script scan the file for \Lenv{pspicture} and \Lenv{postscript} environments,
 which are then taken with its contents from the main file to create stand alone documents
 with the same preamble as the main document. The \Lenv{pspicture} environment can be nested,
@@ -75,11 +112,13 @@ the \Lenv{postscript} one not! But it can contain an environment \Lenv{pspicture
 The \Lenv{postscript} environment should always be used, when there is some code before a \Lenv{pspicture}
 environment or for some code which is not inside of a \Lenv{pspicture} environment.
 
+\noindent
+
 \nxLprog{pst2pdf} delete al lines contains \PST\ package before last run, if you need delete other \PST\ code in preamble use:
 
 \begin{verbatim}
 %CleanPST
-pstricks code
+some pstricks code
 %CleanPST
 \end{verbatim}
 
@@ -123,8 +162,11 @@ pstricks code
 \vspace{10pt}
 Note: When using the default mode, images are created using \Lprog{Ghostscript} and \LPack{preview} package, in this case, it is not necessary
 to write \Lenv{psset} into \PST\ environment.
+
 \newpage
+
 \section{Running the script}
+
 \subsection{Default mode}
 The general syntax for the \Lprog{perl} \emph{script} is simple:
 

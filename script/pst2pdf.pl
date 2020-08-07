@@ -3,7 +3,7 @@ use v5.26;
 
 ############################# LICENCE ##################################
 # $Id: pst2pdf.pl 119 2014-09-24 12:04:09Z herbert $                   #
-# v0.19  2020-07-20 simplify the use of PSTricks with pdf              #
+# v0.19  2020-08-01 simplify the use of PSTricks with pdf              #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
 #     Pablo González Luengo <pablgonz@yahoo.com>                       #
 #                                                                      #
@@ -81,8 +81,8 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $date       = '2020-07-24';
-my $ident      = '$Id: pst2pdf.pl 119 2020-07-24 12:04:09Z herbert $';
+my $date       = '2020-08-01';
+my $ident      = '$Id: pst2pdf.pl 119 2020-08-01 12:04:09Z herbert $';
 
 ### Log vars
 my $LogFile = "$scriptname.log";
@@ -289,35 +289,43 @@ Options:
   -P, --ppm          Create .ppm files using poppler-utils       [pdftoppm]
   -g, --gray         Gray scale for images using ghostscript     [off]
   -f, --force        Try to capture \\psset{...} to extract       [off]
+  -x, --xetex        Using xelatex for compiler input and output [off]
+  -ns,--nosource     Do not create standalone files              [off]
+  -np, --noprew, --single
+                     Create images files without preview package [off]
+  -ni,--norun, --noimages
+                     Generate file-pdf.tex, but not images       [off]
   -d <integer>, --dpi <integer>
                      Dots per inch resolution for images         [150]
   -r <integer>, --runs <integer>
-                     Set the number of times the compiler will run
-                     on the input file for extraction            [1]
+                     Set the number of times the compiler will
+                     run on the input file for extraction        [1]
   -m <integer>, --margins <integer>
-                     Set margins in bp for pdfcrop                [0]
-  -np, --noprew, --single
-                     Create images files without "preview" package [off]
+                     Set margins in bp for pdfcrop               [0]
+  --myverb <macro>   Add "\\macroname" to verbatim inline search  [myverb]
+  --ignore <environment>
+                     Add "environment" to verbatim environments  [off]
   --srcenv           Create files with only code environment     [off]
-  -ns,--nosource     - delete all source(.tex) for images files
-  -ni,--norun, --noimages
-                     Generate file-pdf.tex, but not images
-  --imgdir <dirname> Set name of directory to save images/files   [images]
-  --myverb <macro>   Add "\\macroname" to verbatim inline search   [myverb]
-  --zip              Compress generated files in .zip format       [off]
-  --tar              Compress generated files in .tar.gz format    [off]
-  -x,--xetex         - using (Xe)LaTeX for create images
-  --bibtex           Run bibtex on the .aux file (if exists)
-  --biber            Run biber on the .bcf file (if exists)
+  --nopdf            Do not create images in pdf format          [off]
+  --nocrop           Does not run pdfcrop                        [off]
+  --imgdir <dirname> Set name of directory to save images/files  [images]
+  --luatex           Using dvilualatex>dvips>ps2pdf for compiler
+                     input and lualatex for compiler output file [off]
+  --arara            Use arara for compiler output file          [off]
+  --latexmk          Using latexmk for compiler output file      [off]
+  --zip              Compress generated files in .zip format     [off]
+  --tar              Compress generated files in .tar.gz format  [off]
+  --bibtex           Run bibtex on the .aux file (if exists)     [off]
+  --biber            Run biber on the .bcf file (if exists)      [off]
 
 Example:
 \$ $scriptname -e -p -j --imgdir=pics test.tex
-* Create a "./pics" directory (if it doesn't exist) with all extracted
-* environments converted to individual files (.pdf, .eps, .png, .tex), a
-* file "test-fig-all.tex" with all extracted environments and the file
-* "test-pdf.tex" with all environments converted to \\includegraphics using
-* latex>dvips>ps2pdf and preview package for <input file> and pdflatex for
-* <output file>.
+* Create a ./pics directory (if it doesn't exist) with all extracted
+* environments converted to individual files (.pdf, .eps, .png, .tex),
+* a file test-fig-all.tex with all extracted environments and the file
+* test-pdf.tex with all environments converted to \\includegraphics using
+* latex>dvips>ps2pdf and preview package for <input file> and pdflatex
+* for <output file>.
 
 Suport bundling for short options $scriptname test.tex -epj --imgdir=pics
 See texdoc pst2pdf for full documentation.

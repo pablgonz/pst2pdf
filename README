@@ -1,59 +1,68 @@
+## pst2pdf &ndash; Running a PSTricks document with (pdf/xe/lua)latex
+
+## Description
+
 pst2pdf is a Perl script which isolates all PostScript or
 PSTricks related parts of the TeX document into single
-LaTeX files, for which an eps and pdf image is created. 
+LaTeX files, for which an eps and pdf image is created.
 The pdf ones are then imported in a last pdflatex run
 for the pdf output of the main document. The eps and
 pdf files are saved in a subdirectory images.
 
-Syntax: pst2pdf.pl file[.tex] [options] 
+## Usage
 
-alternative: perl pst2pdf.pl file[.tex] [options]
+```
+pst2pdf.pl [options] <file>[.tex|.ltx]
+```
+or
+
+```
+pst2pdf.pl <file>[.tex|.ltx] [options]
+```
+
+Relative or absolute `paths` for directories and files is not supported. Options that accept a _value_ require either a blank
+space or `=` between the option and the _value_. Some short options can be bundling.
+
+pst2pdf creates a document `file-pdf.tex` for use with pdflatex, which then creates file-pdf.pdf. The created
+images are named file-fig-<No>.pdf
 
 
-Some restrictions:
-\begin{postscript}
-...
-\begin{pspicture}
-....
-\end{pspicture}
-...
-\end{postscript}
+If used without `[<options>]` the extracted environments are converted to `pdf` image format
+and saved in the `./images` directory using `latex>dvips>ps2pdf` and `preview` package to process `<file>`.
+and `pdflatex` to process `<file-pdf>`.
 
-The pspicture environment can be nested, the postscript one NOT! 
-pspicture can be inside of a postscript environment, but 
+## Restrictions
+
+The pspicture environment can be nested, the postscript one NOT!
+pspicture can be inside of a postscript environment, but
 not vice versa.
+
+\begin{postscript}
+  ...
+    \begin{pspicture}
+      ....
+    \end{pspicture}
+  ...
+\end{postscript}
 
 The postscript environment should be used for all other
 PostScript related commands, which are not part of
 a pspicture environment, e.g. nodes inside normal text.
 
-pst2pdf creates a document file-pdf.tex for use with
-pdflatex, which then creates file-pdf.pdf. The created
-images are named file-fig-<No>.pdf
+## Documentation
 
-Options:
-  -h,--help          - display this help and exit
-  -l,--license       - display license information and exit
-  -v,--version 	     - display version (current $nv) and exit
-  -d,--dpi=<int>     - the dots per inch for images (default 300)
-  -j,--jpg           - create .jpg files (need Ghostscript)
-  -p,--png           - create .png files (need Ghostscript)
-  -e,--eps	     - create .eps files (need pdftops)
-  -s,--svg	     - create .svg files (need pdf2svg)
-  -P,--ppm	     - create .ppm files (need pdftoppm)
-  -a,--all	     - create .(pdf,eps,jpg,png,ppm,svg) images
-  -c,--clear         - delete all temp and aux files
-  -x,--xetex         - using (Xe)LaTeX for create images
-  -m,--margins=<int> - margins for pdfcrop (in bp) (default 1)
-  -ni,--noimages     - generate file-pdf.tex, but not images
-  -np,--single       - create images files whitout preview and Ghostscript
-  -ns,--nosource     - delete all source(.tex) for images files
-  --imgdir=<string>  - the folder for the created images (default images)
-  --ignore=<string>  - skip other verbatim environment (default other)
-  --bibtex           - run bibtex on the aux file, if exists
-  --biber            - run biber on the bcf file, if exists
-  --Verbose          - creates a long log file (.plog)
+For more documentation use:
 
-for more documentation => pst2pdf --help or read the documentation
---
-Herbert Voss 2010-01-04
+```
+$ pst2pdf --help
+```
+
+or
+
+```
+$ texdoc pst2pdf
+```
+
+## Copyright
+
+Copyright 2013 - 2020 by Pablo González L
