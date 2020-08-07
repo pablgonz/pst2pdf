@@ -266,13 +266,13 @@ ${title}
     file with all environments converted to \\includegraphics and runs
     (pdf/Xe/lua)latex.
 
-Usage: $scriptname [<compiler>] [<options>] <texfile.tex>
-       $scriptname <texfile.tex> [<compiler>] [options]
+Usage: $scriptname [<options>] <texfile>[.tex|.ltx]
+       $scriptname <texfile>[.tex|.ltx] [options]
 
-   If used without [<compiler>] and [<options>] the extracted environments
-   are saved in standalone files and converted to pdf image format in the
-   "./images" directory using latex>dvips>ps2pdf and preview package to
-   process <input file> and pdflatex for compiler <output file>.
+   If used without [<options>] the extracted environments are saved in
+   standalone files and converted to pdf image format in the "./images"
+   directory using "latex>dvips>ps2pdf" and preview package to process 
+   <input file> and "pdflatex" for compiler <output file>.
 
 Options:
                                                                  [default]
@@ -324,8 +324,8 @@ Example:
 * environments converted to individual files (.pdf, .eps, .png, .tex),
 * a file test-fig-all.tex with all extracted environments and the file
 * test-pdf.tex with all environments converted to \\includegraphics using
-* latex>dvips>ps2pdf and preview package for <input file> and pdflatex
-* for <output file>.
+* latex>dvips>ps2pdf and preview package for <test.tex> and pdflatex
+* for <test-pdf.tex>.
 
 Suport bundling for short options $scriptname test.tex -epj --imgdir=pics
 See texdoc pst2pdf for full documentation.
@@ -2233,5 +2233,4 @@ Infocolor('Finish', "The execution of $scriptname has been successfully complete
 Log("The execution of $scriptname has been successfully completed");
 
 __END__
-1. Terminar de reescribir --help, falta poco en esta sección.
-2. Crear build.lua, documentar TODOS los cambios (aun no he resuelto esto)
+1. Añadir -no-pdf y xdvipdmx para --xetex
