@@ -1,21 +1,36 @@
-% arara: lualatex: {draft: yes}
-% arara: lualatex
-% arara: biber
-% arara: makeindex
-% arara: lualatex
-%! arara: lualatex
-%! arara: dvips
-%! arara: ps2pdf
-% arara: clean: { files:[PSTricks.bib,pst2pdf-doc.out, pst2pdf-doc.ps, pst2pdf-doc.toc,pst2pdf-doc.log,pst2pdf-doc.ind,pst2pdf-doc.aux, pst2pdf-doc.bbl, pst2pdf-doc.bcf, pst2pdf-doc.blg,pst2pdf-doc.dvi,pst2pdf-doc.idx,pst2pdf-doc.ilg,pst2pdf-doc.run.xml] }
-%\documentclass[11pt,english,BCOR=10mm,DIV=12,bibliography=totoc,parskip=false,headings=small,
-    %headinclude=false,footinclude=false,twoside]{pst-doc}
-\documentclass[11pt,english,BCOR10mm,DIV12,bibliography=totoc,parskip=false,smallheadings
-    headexclude,footexclude,oneside]{pst-doc}
+\documentclass[11pt,english,
+               BCOR=10mm,DIV=10,% <- changed
+               bibliography=totoc,parskip=half*,<- changed
+               headings=small,% <- changed
+               headinclude=false,% <- changed
+               footinclude=false,oneside,mpinclude=false]{pst-doc}
+\AfterCalculatingTypearea{%
+  \newgeometry{top=0.5in, bottom=0.3in,left=1.4in,right=0.7in,%
+               marginparwidth=1.3in,marginparsep=0.1in,footskip=0.2in,%
+               headheight=1cm,headsep=0.27cm,reversemarginpar}%
+  \KOMAoptions{headsepline=:text}% <- added
+}
+\recalctypearea
+\setheadwidth[0pt]{text}
+\RedeclareSectionCommand[
+  %runin=false,
+  afterindent=false,
+  beforeskip=\baselineskip,
+  afterskip=.5\baselineskip]{section}
+\RedeclareSectionCommand[
+  %runin=false,
+  afterindent=false,
+  beforeskip=.75\baselineskip,
+  afterskip=.5\baselineskip]{subsection}
+\RedeclareSectionCommand[
+  %runin=false,
+  afterindent=false,
+  beforeskip=.5\baselineskip,
+  afterskip=.25\baselineskip]{subsubsection}
 \listfiles
 \let\Lfile\LFile
-% Identification
 \def\myscript{pst2pdf}
-\def\fileversion{1.8}
+\def\fileversion{0.19}
 \def\filedate{2020-08-08}
 \usepackage{biblatex}
 \addbibresource{\jobname.bib}
@@ -23,12 +38,371 @@
 \def\DVI{\textsc{DVI}}
 \def\PDF{\textsc{PDF}}
 \def\gs{\textsc{Ghostscript}}
-\usepackage{hologo} % LaTeX logos
-%%=== new macros ====================================================
+\usepackage{multicol,enumitem,hologo,accsupp,csquotes}
+
+% Some font for verbatim examples
+\newfontfamily\lmmitalic{lmmono10-italic.otf}[
+   Scale             = 0.95,%
+   Extension         = .otf,%
+   ItalicFont        = lmmono10-italic,%
+   SmallCapsFont     = lmmonocaps10-oblique,%
+   SlantedFont       = lmmonoslant10-regular,
+   ]
+% The character of visible space is now taken from Latin Modern Mono
+% to prevent fonts in T1. The original definition for xetex/luatex is
+% \def\verbvisiblespace{\usefont{OT1}{cmtt}{m}{n}\asciispace}
+\def\verbvisiblespace{{\fontfamily{lmtt}\selectfont\char"2423}}
+% Add some colors
+\definecolor{optcolor}{rgb}{0.281,0.275,0.485}
+\definecolor{pkgcolor}{rgb}{0,0.5,0.5}
+\definecolor{araracolor}{rgb}{0, 0.72, 0.28}
+\definecolor{linkcolor}{rgb}{0.04,0.38,0.04}
+\definecolor{rulecolor}{rgb}{0.96,0.96,0.96}
+
+% new macros
 \makeatletter
 \def\Lscript#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Script!#1@\texttt{#1}}}
 \def\Losystem#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Operating system!#1@\texttt{#1}}}
+\def\Loptcmd#1{\index{Options in command line!#1@\texttt{#1}}} % \index{#1@\texttt{#1}}
+\def\Limgform#1{\texttt{#1}\index{Image format!#1@\texttt{#1}}}% \index{#1@\texttt{#1}}
+\def\Loptprg#1{\index{Compiler options!#1@\texttt{#1}}}% \index{#1@\texttt{#1}}
+\def\Venv#1{\index{Environment Verbatim!#1@\texttt{#1}}}
+\def\Wenv#1{\index{Environment Verbatim Write!#1@\texttt{#1}}}
+
+% Only index a starred version
+\RenewDocumentCommand{\LFile}{sm}
+  {
+    \IfBooleanTF{#1}%
+      {%
+        \LFile{#2}
+
+      }%
+      {%
+        \texttt{#2}%
+      }%
+  }%
+
+% \prgopt{sm} : #1 compiler opt, #2 program opt:
+\NewDocumentCommand{\prgopt}{sm}
+  {
+    \IfBooleanTF{#1}%
+      {%
+        \mbox{\textcolor{gray}{\texttt{-{}#2}}}%
+        \Loptprg{-{}#2}%
+      }%
+      {%
+        \mbox{\textcolor{gray}{\texttt{-{}#2}}}%
+        \index{#2@\texttt{-{}#2}}\index{Program options!#1@\texttt{-{}#2}}%
+      }%
+  }%
+
+% \DescribeIF{m}, #1 image format
+\newsavebox{\marginIF}
+\NewDocumentCommand{\DescribeIF}{ m }
+  {%
+    \begin{lrbox}{\marginIF}%
+      \begin{minipage}[t]{\marginparwidth}%
+        \raggedleft\ttfamily\bfseries%
+        \textcolor{optcolor}{#1}\hfill
+      \end{minipage}%
+    \end{lrbox}%
+    \index{Image format!#1@\texttt{#1}}%
+    \leavevmode%
+    \marginpar{\usebox{\marginIF}}%
+    \ignorespaces%
+  }%
+
+%\makeatletter
+% \myenv{environ} for margin
+\NewDocumentCommand{\myenv}{m}
+  {
+    \begin{minipage}[t]{\marginparwidth}%
+        \raggedleft\ttfamily\small%
+        {\textcolor{gray}{\textbackslash begin\{}}{\bfseries\textcolor{pkgcolor}{#1}}\textcolor{gray}{\}}\par%
+        \meta[ac=lightgray,cf=gray]{env content}\par%
+        {\textcolor{gray}{\textbackslash end\{}}{\bfseries\textcolor{pkgcolor}{#1}}\textcolor{gray}{\}}%
+    \end{minipage}%
+    \index{Environment suport by default!#1@\texttt{#1}}
+  }
+% CleanPST for margin
+\NewDocumentCommand{\mytag}{m}
+  {%
+   \begin{minipage}[t]{\marginparwidth}%
+        \raggedleft\ttfamily\small%
+        \textcolor{gray}{\%}{\bfseries\textcolor{pkgcolor}{#1}}\par%
+        \meta[ac=lightgray,cf=gray]{code}\par%
+        \textcolor{gray}{\%}{\bfseries\textcolor{pkgcolor}{#1}}%
+    \end{minipage}%
+    \index{Remove PST code!#1@\texttt{#1}}
+  }%
+
+% \DescribeTE{sm}, #1 tag, #2 env
+\newsavebox{\marginenvtag}
+\NewDocumentCommand{\DescribeTE}{sm}{%
+\begin{lrbox}{\marginenvtag}%
+   \begin{minipage}[t]{\marginparwidth}%
+    \raggedleft
+    \IfBooleanTF{#1}{\mytag{#2}}{\myenv{#2}}
+    \end{minipage}%
+\end{lrbox}%
+    \leavevmode%
+    \marginpar{\usebox{\marginenvtag}}%
+    \ignorespaces%
+}%
 \makeatother
+
+\ExplSyntaxOn
+% \cmdopt[short]{long}
+\NewDocumentCommand{\cmdopt}{om}
+  {
+    \IfNoValueTF{#1}
+      {
+        \textcolor{optcolor}{\texttt{-\/-#2}}
+      }
+      {
+        \textcolor{optcolor}{\texttt{-{}#1}},
+        \textcolor{optcolor}{\texttt{-\/-#2}}
+      }
+    \Loptcmd{-\/-#2}
+  }
+
+% Custom \meta[...]{...}, \marg[...]{...} and \oarg[...]{...} for color
+\NewDocumentCommand{\meta}{O{}m}
+  {
+   \myscript_meta_generic:Nnn \myscript_meta:n { #1 } { #2 }
+  }
+\NewDocumentCommand{\marg}{O{}m}
+  {
+   \myscript_meta_generic:Nnn \myscript_marg:n { #1 } { #2 }
+  }
+\NewDocumentCommand{\oarg}{O{}m}
+  {
+   \myscript_meta_generic:Nnn \myscript_oarg:n { #1 } { #2 }
+  }
+% Variables and keys
+\tl_new:N \l_myscript_meta_font_tl
+
+\keys_define:nn { myscript/meta }
+  {
+   type .choice:,
+   type / tt .code:n = \tl_set:Nn \l_myscript_meta_font_tl { \ttfamily },
+   type / rm .code:n = \tl_set:Nn \l_myscript_meta_font_tl { \rmfamily },
+   type .initial:n = rm,
+   cf .tl_set:N = \l_myscript_meta_color_tl,
+   cf .initial:n = gray,%optcolor,
+   ac .tl_set:N = \l_myscript_meta_anglecolor_tl,
+   ac .initial:n = lightgray,
+   sbc .tl_set:N = \l_myscript_meta_brackcolor_tl,
+   sbc .initial:n = gray,
+   cbc .tl_set:N = \l_myscript_meta_bracecolor_tl,
+   cbc .initial:n = gray,
+  }
+% Internal commands
+\cs_new_protected:Npn \myscript_meta_generic:Nnn #1 #2 #3
+  {
+   \group_begin:
+    \keys_set:nn { myscript/meta } { #2 }
+    \color{ \l_myscript_meta_color_tl }
+    \l_myscript_meta_font_tl
+    #1 { #3 } % #1 is \myscript_meta:n, \myscript_marg:n or \myscript_oarg:n
+   \group_end:
+  }
+\cs_new_protected:Npn \myscript_meta:n #1
+  {
+   \myscript_meta_angle:n { \textlangle }
+   \myscript_meta_meta:n { #1 }
+   \myscript_meta_angle:n { \textrangle }
+  }
+\cs_new_protected:Npn \myscript_marg:n #1
+  {
+   \myscript_meta_brace:n { \textbraceleft }
+   \myscript_meta:n { #1 }
+   \myscript_meta_brace:n { \textbraceright }
+  }
+\cs_new_protected:Npn \myscript_oarg:n #1
+  {
+   \myscript_meta_brack:n { [ }
+   \myscript_meta:n { #1 }
+   \myscript_meta_brack:n { ] }
+  }
+\cs_new_protected:Npn \myscript_meta_meta:n #1
+  {
+   \textnormal{\textit{#1}}
+  }
+\cs_new_protected:Npn \myscript_meta_angle:n #1
+  {
+   \group_begin:
+    \fontfamily{lmr}\selectfont
+    \textcolor{\l_myscript_meta_anglecolor_tl}{#1}
+   \group_end:
+  }
+\cs_new_protected:Npn \myscript_meta_brace:n #1
+  {
+   \group_begin:
+    \color{\l_myscript_meta_bracecolor_tl}
+    #1
+   \group_end:
+  }
+\cs_new_protected:Npn \myscript_meta_brack:n #1
+  {
+   \textcolor{\l_myscript_meta_brackcolor_tl}{#1}
+  }
+
+% \DescribeCmd[...]{...}{...}{...}
+\newsavebox{\optcmdline}
+\NewDocumentCommand{\DescribeCmd}{ o m m m }
+  {
+  \group_begin:
+    \begin{lrbox}{\optcmdline}%
+      \begin{minipage}[t]{\marginparwidth}%
+      \ttfamily\raggedleft%
+      \IfNoValueTF{#1}
+        {\textcolor{optcolor}{-\/-#2}}
+        {\textcolor{optcolor}{-{#1}}\textcolor{gray}{,} \textcolor{optcolor}{-\/-#2}}%
+      \end{minipage}%
+      \Loptcmd{-\/-#2}
+    \end{lrbox}%
+    \leavevmode%
+    \marginpar{\usebox{\optcmdline}}%
+    \meta[ac=lightgray,cf=gray]{#3}
+    \raggedleft\hfill\textcolor{gray}{\textsf{(default: ~ {#4})}}\ignorespaces\par%
+    %\vspace*{2pt}\par%
+  \group_end:
+}
+
+\ExplSyntaxOff
+% Don't copy numbers in code example for listings
+\newcommand*{\noaccsupp}[1]{\BeginAccSupp{ActualText={}}#1\EndAccSupp{}}
+
+% Create a language for documentation
+\lstdefinelanguage{myscript-doc}{
+    texcsstyle=*,%
+    escapechar=`,%
+    showstringspaces=false,%
+    extendedchars=true, %
+    stringstyle = {\color{red}},%
+    alsoletter={\-,.},%
+% comments
+    morecomment=[l]{\%},%
+    commentstyle=\lmmitalic\color{lightgray},%
+% Important words 1
+    keywordstyle=[1]{\color{NavyBlue}},%
+    keywords=[1]{PassOptionsToPackage,AtBeginDocument,documentclass,usepackage,section},%
+% Important words 2 (macros)
+    keywordstyle=[2]{\color{blue!75}},%
+    keywords=[2]{graphicspath,RequirePackage,renewcommand,includegraphics,coordinate,draw,approx,%
+    PreviewBbAdjust,setlength,parindent,usetikzlibrary,tikzexternalize,psset,tikzset,PrependGraphicsExtensions,%
+    DefineShortVerb,lstMakeShortInline,MakeSpecialShortVerb,UndefineShortVerb,verb,myverb,macro,put,line},%
+% Important words 3, options in input file
+    keywordstyle=[3]{\color{optcolor!85}},%
+    keywords=[3]{arara,extensions,luatex,env,norun,%
+    clean,pst,tkz,eps,pdf,xetex,latex,luatex,dvips,png,latexmk,svg,srcenv,noprew,imgdir},%
+% Important words 4, environments and tags
+    keywordstyle=[4]{\color{pkgcolor}},%
+    keywords=[4]{pspicture,endpspicture,description,filecontents,PSTexample,%
+    psgraph, endpsgraph,CleanPST,postscript},%
+% Important words 5, directory
+    keywordstyle=[5]{\color{OrangeRed}},%
+    keywords=[5]{images},% ,pics
+% Important words 6, begin, end and other
+    keywordstyle=[6]{\color{gray}},% replace this color
+    keywords=[6]{begin,end,-recorder,doc,active,inactive,tightpage,BEGIN,END,%
+    -shell-escape,osf,--output-format,dvi},%
+% Important words 7, reserved for arara
+    keywordstyle=[7]{\color{araracolor}},%
+    keywords=[7]{lualatex,halt,xelatex},%
+% Important words 8, pkg and others load in examples
+    keywordstyle=[8]{\color{SlateBlue}},%
+    keywords=[8]{graphicx,grfext,article,document,preview,libertinus,pst-pdf},%
+% Important words 9, files used in examples
+    keywordstyle=[10]{\color{OrangeRed}},%
+    keywords=[10]{test-fig-1981.tex,test-fig-1981.pdf, test-fig-1,test-fig-2,test-out,test-in.ltx,%
+    test-fig-1981.tex,test-out.tex,file-in.tex,file-out,test.tex,test-fig-all.dvi,test-fig-1.svg,test-fig-all.tex},%
+}[keywords,tex,comments,strings]% end languaje
+
+% \begin{examplecode}[opts]...\end{examplecode}
+\lstnewenvironment{examplecode}[1][]{%
+\lstset{
+    language=myscript-doc,%
+    stringstyle = {\color{red}},%
+    basicstyle=\ttfamily\small,%
+    numbersep=1em,%
+    numberstyle=\tiny\color{gray}\noaccsupp,%
+    rulecolor=\color{gray!50},%
+    framesep=\fboxsep,%
+    framerule=\fboxrule,%
+    xleftmargin=\dimexpr\fboxsep+\fboxrule\relax,%
+    xrightmargin=\dimexpr\fboxsep+\fboxrule\relax,%
+% literateee
+    literate=*{\{}{{\bfseries\textcolor{gray}{\{}}}{1}
+              {\}}{{\bfseries\textcolor{gray}{\}}}}{1}
+              {[}{{\textcolor{gray}{[}}}{1}
+              {]}{{\textcolor{gray}{]}}}{1}
+              {\*}{{\bfseries\textcolor{MediumOrchid}{*}}}{1}
+              {:}{{\textcolor{gray}{:}}}{1}
+              {,}{{\textcolor{gray}{,}}}{1}
+              {=}{{\textcolor{gray}{=}}}{1}
+              {/}{{\textcolor{OrangeRed}{/}}}{1}
+              {scale=1}{{\textcolor{gray}{scale=1}}}{7}
+              {\%CleanPST}{{\textcolor{gray}{\%}\textcolor{pkgcolor}{CleanPST}}}{9},%
+          #1,%
+    }% close lstset
+}%
+{}% close examplecode
+
+% \begin{examplecmd}...\end{examplecmd}
+\lstnewenvironment{examplecmd}{%
+\lstset{
+    language=myscript-doc,%
+    basicstyle=\ttfamily\small,%
+    frame=single,%
+    alsoletter={\-,.,\-\-},%
+    rulecolor=\color{gray!50},%
+    framesep=\fboxsep,%
+    framerule=\fboxrule,%
+    xleftmargin=\dimexpr\fboxsep+\fboxrule\relax,%
+    xrightmargin=\dimexpr\fboxsep+\fboxrule\relax,%
+    keywordstyle=[20]{\color{gray}},% replace this color
+    keywords=[20]{--margins, -recorder,-shell-escape,-s,-o,-e,-p,-j,--imgdir,--luatex,--latexmk,--svg,--png,--nopdf,pics},%
+% Reserved words (cmd line options)
+    deletekeywords=[4]{pst2pdf},%
+    classoffset=7,%
+    keywordstyle=\bfseries\color{ForestGreen},%
+    morekeywords={pst2pdf},%
+% % Reserved words (cmd line options)
+    classoffset=8,%
+    keywordstyle={\color{ForestGreen}},%
+    morekeywords={gs,pdftoppm,pdftocairo,pdftops,cd,perl,pdfcrop},%
+% Only for command line options
+    classoffset=5,%
+    keywordstyle=\color{blue},%
+    keywords={user,machine},%
+    literate=*{[}{{\textcolor{darkgray}{[}}}{1}
+              {]}{{\textcolor{darkgray}{]}}}{1}
+              {@}{{\textcolor{blue}{@}}}{1}
+              {\$}{{\textcolor{blue}{\$}}}{1}
+              {:}{{\textcolor{blue}{:}}}{1}
+              {§}{{\textcolor{red}{\$\space}}}{1}
+              {~}{{\textcolor{blue}{\bfseries\textasciitilde}}}{1}%
+    }% close lstset
+}%
+{}% close examplecmd
+
+% \lstinline[style=inline]|...|
+\lstdefinestyle{inline}
+  {
+   language=myscript-doc,%
+   basicstyle=\ttfamily\color{gray},%
+   escapechar=`,%
+   upquote=true,%
+   deletekeywords=[8]{preview},%
+   morekeywords =[4]{preview},%
+   literate=*{\%}{{\bfseries\textcolor{gray}{\%}}}{1}
+             {\*}{{\bfseries\textcolor{MediumOrchid}{*}}}{1}
+  }
+
+% set default style
+\lstset{style=inline}
 \begin{document}
 
 \title{\texttt{\myscript}}
@@ -40,11 +414,10 @@
 \maketitle
 
 \begin{abstract}
-    \texttt{\myscript} run a \TeX{} \Larga{source}, read all \Lenv{postscript}, \Lenv{pspicture}, \Lenv{psgraph}
-    and \Lenv{PSTexample} environments and convert in images pdf,eps,jpg,svg
-    or png format (default pdf), extract source code and create new
-    file with all environments converted to \Lcs{includegraphics} and runs
-    (pdf/Xe/lua)latex.
+    \texttt{\myscript} run a \TeX{} source, read all \Lenv{postscript}, \Lenv{pspicture}, \Lenv{psgraph}
+    and \Lenv{PSTexample} environments and convert in images \texttt{pdf,eps,jpg,svg}
+    or \texttt{png} format (default \texttt{pdf}), extract source code in standalone files and create new
+    file with all environments converted to \Lcs{includegraphics} and runs \texttt{(pdf/Xe/lua)latex}.
 \end{abstract}
 
 \tableofcontents
@@ -60,7 +433,7 @@ problem. Nearly all mathematical calculation can be done when running the \DVI-f
 with \gs. However, creating a \PDF\ file in a direct way with \Lprog{pdflatex} is
 not possible. \Lprog{pdflatex} cannot understand the \PS\ related stuff.
 
-Instead of running \Lprog{pdflatex} one can use the \Lprog{perl} \emph{script} \Lscript{pst2pdf}, it extracts
+Instead of running \Lprog{pdflatex} one can use the \emph{script} \Lscript{pst2pdf}, it extracts
 all \PST\ related code into single documents with the same preamble as the original
 main document.
 
@@ -77,171 +450,759 @@ it under the terms of the \href{https://www.gnu.org/licenses/gpl-3.0.html}{GNU G
 the \href{https://www.fsf.org/}{Free Software Foundation}; either version 3 of the License, or
 (at your option) any later version.
 
+
 This program is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the \href{https://www.gnu.org/licenses/gpl-3.0.html}{GNU General Public License}
 for more details.
 
-\section{Requirements}
+\section{Requirements for operation}
 
 For the complete operation of \Lscript{pst2pdf}{} you need to have a modern %
-\hologo{TeX} distribution such as \hologo{TeX} Live or \hologo{MiKTeX}, have
+\hologo{TeX} distribution such as \hologo{TeX} Live or \hologo{MiKTeX}, the packages \LPack{preview}\cite{preview},
+\LPack{pst-pdf}\cite{pst-pdf}, \LPack{graphicx}\cite{graphicx} and \LPack{grfext}\cite{grfext}, have
 a version equal to or greater than \liningnums{5.28} of \Lprog{perl}, a
-version equal to or greater than \liningnums{9.24} of \Lprog{Ghostscript}
+version equal to or greater than \liningnums{9.24} of \Lprog{Ghostscript}, a
+version equal to or greater than \liningnums{1.40} of \Lscript{pdfcrop}
 and have a version equal to or greater than \liningnums{0.52} of %
-\Lprog{poppler-utils}. The distribution of \hologo{TeX} Live 2020 for \Losystem{Windows} includes %
+\Lprog{poppler-utils}.
+
+The distribution of \hologo{TeX} Live 2020 for \Losystem{Windows} includes %
 \Lscript{pst2pdf} and all requirements, \hologo{MiKTeX} users must install the
 appropriate software for full operation.
+
+The script auto detects the \Lprog{Ghostscript}, but not \Lprog{poppler-utils}.
+You should keep this in mind if you are using the script directly and not
+the version provided in your \hologo{TeX} distribution.
 
 The script has been tested on \Losystem{Windows} (v10) and %
 \Losystem{Linux} (fedora 32) using \Lprog{Ghostscript} %
 \liningnums{v9.52}, \Lprog{poppler-utils} \liningnums{v0.84}, \Lprog{perl} \liningnums{v5.30}
 and the standard classes offers by \hologo{LaTeX}: \LClass{book},
-\LClass{report}, \LClass{article} and \LClass{letter}. The \LPack{preview} and
-\LPack{pst-pdf} packages are required to process the \Larga{input file} and if
-an \Larga{output file} is generated, the \LPack{graphicx} and \LPack{grfext}
-packages will be needed.
+\LClass{report}, \LClass{article} and \LClass{letter}.
 
+\section{How it works}
+\label{sec:howtowork}
 
-\subsection{Preparating file}
+It is important to have a general idea of how the \emph{\enquote{extraction and conversion}}
+process works and the requirements that must be fulfilled so
+that everything works correctly, for this we must be clear about some
+concepts related to how to work with the \meta{input file}, the \meta{verbatim content}
+and the \meta{steps process}.
 
-The script scan the file for \Lenv{pspicture} and \Lenv{postscript} environments,
-which are then taken with its contents from the main file to create stand alone documents
-with the same preamble as the main document. The \Lenv{pspicture} environment can be nested,
-the \Lenv{postscript} one not! But it can contain an environment \Lenv{pspicture}, but not vice versa.
-The \Lenv{postscript} environment should always be used, when there is some code before a \Lenv{pspicture}
-environment or for some code which is not inside of a \Lenv{pspicture} environment.
+\subsection{The input file}
+\label{sec:inputfile}
 
-\noindent
+The \meta[cf=optcolor]{input file} must comply with \emph{certain characteristics} in order to
+be processed, the content at the beginning and at the end of the \meta{input
+file} is treated in a special way, before \lstinline|\documentclass| and after
+\lstinline|\end{document}| can go any type of content, internally the script will
+\emph{\enquote{split}} the \meta[cf=optcolor]{input file} at this points.
 
-\nxLprog{pst2pdf} delete al lines contains \PST\ package before last run, if you need delete other \PST\ code in preamble use:
+If the \meta[cf=optcolor]{input file} contains files using \Lcs{input}\marg[type=tt]{file} or
+\Lcs{include}\marg[type=tt]{file} these will not be processed, from the side of
+the \emph{script} they only represent lines within the file, if you want
+them to be processed it is better to use the \Lscript{latexpand}\footnote{\url{https://www.ctan.org/pkg/latexpand}}
+first and then process the file.
 
-\begin{verbatim}
-%CleanPST
-some pstricks code
-%CleanPST
-\end{verbatim}
+Like \Lcs{input}\marg[type=tt]{file} or \Lcs{include}\marg[type=tt]{file}, blank lines, vertical spaces and tab
+characters are treated literally, for the \emph{script} the \meta[cf=optcolor]{input file}
+is just a set of characters, as if it was a simple text file. It is
+advisable to format the source code \meta[cf=optcolor]{input file} using utilities such
+as \Lprog{chktex}\footnote{\url{https://www.ctan.org/pkg/chktex}} and
+\Lscript{latexindent}\footnote{\url{https://www.ctan.org/pkg/latexindent}}, especially if you want to
+extract the source code of the environments.
 
-\section{Environments support}
-\nxLprog{pst2pdf} support fourth environments in default and single way:
+Both \Lcs{thispagestyle}\marg[type=tt]{style} and \Lcs{pagestyle}\marg[type=tt]{style}
+are treated in a special way by the script, if they do not appear in the
+preamble then \Lcs{pagestyle}\marg[type=tt]{empty} will be added and if they are present
+and \marg[type=tt]{style} is different from \marg[type=tt]{empty} this
+will be replaced by \marg[type=tt]{empty}.
 
-\vspace{10pt}
-\begin{minipage}[c]{0.25\textwidth}
-\begin{verbatim}
-\pspicture*
-\psset{...}
-pstricks code
-\endpspicture
-\end{verbatim}
-\end{minipage}
-\begin{minipage}[c]{0.25\textwidth}
+This is necessary for the image creation process, it does not affect the \meta{output file}, but
+it does affect the \emph{standalone} files. For the script the process of dividing the \meta{input file} into four
+parts and then processing them:
+
+\begin{examplecode}[numbers=left,frame=single]
+% Part One: Everything before \documentclass
+\documentclass{article}
+% Part two: Everything between \documentclass and \begin{document}
+\begin{document}
+% Part three: : Everything between \begin{document} and \end{document}
+\end{document}
+% Part Four: Everything after \end{document}
+\end{examplecode}
+
+If for some reason you have an environment \Lenv{filecontens} before \lstinline|\documentclass| or
+in the preamble of the \meta{input file} that contains a \emph{sub-document} or \emph{environment}
+you want to extract, the script will ignore them.
+
+\subsection{Verbatim contents}
+\label{sec:verbatim}
+
+One of the greatest capabilities of this script is to \emph{\enquote{skip}}
+the complications that \meta{verbatim content} produces with the extraction
+of environments using tools outside the \enquote{\hologo{TeX} world}.
+In order to \emph{\enquote{skip}} the complications, the \meta{verbatim content} is classified into
+three types:
+
+\begin{itemize}[nosep]
+    \item Verbatim in line.
+    \item Verbatim standard.
+    \item Verbatim write.
+\end{itemize}
+
+\subsubsection{Verbatim in line}
+\label{sec:verbatim:inline}
+
+The small pieces of code written using a \emph{\enquote{verbatim macro}}
+are considered \meta{verbatim in line}, such as \lstinline+\verb|+\meta{code}\lstinline+|+
+or \lstinline+\verb*|+\meta{code}\lstinline+|+ or \lstinline+\macro+\marg[type=tt]{code} or
+\lstinline+\macro+\oarg[type=tt]{opts}\marg[type=tt]{code}.
+
+Most \emph{\enquote{verbatim macro}} provide by packages \LPack{minted}, %
+\LPack{fancyvrb} and \LPack{listings} have been tested and are fully
+supported. They are automatically detected the \emph{verbatim macro} (including \texttt{\small\bfseries\textcolor{MediumOrchid}{*}} argument) generates by
+\Lcs{newmint} and \Lcs{newmintinline} and the following list:
+
+\vspace*{-10pt}
+\begin{multicols}{3}
+\begin{itemize}[font=\sffamily\small,partopsep=5pt,parsep=5pt,nosep,leftmargin=*]
+\small
+\item \Lcs{mint}
+\item \Lcs{spverb}
+\item \Lcs{qverb}
+\item \Lcs{fverb}
+\item \Lcs{verb}
+\item \Lcs{Verb}
+\item \Lcs{lstinline}
+\item \Lcs{pyginline}
+\item \Lcs{pygment}
+\item \Lcs{Scontents}
+\item \Lcs{tcboxverb}
+\item \Lcs{mintinline}
+\end{itemize}
+\end{multicols}
+
+Some packages define abbreviated versions for \emph{\enquote{verbatim macro}} as %
+\Lcs{DefineShortVerb}, \Lcs{lstMakeShortInline} and %
+\Lcs{MakeSpecialShortVerb}, will be detected automatically if are declared
+explicitly in \meta[cf=optcolor]{input file}.
+
+The following consideration should be kept in mind for some packages that
+use abbreviations for verbatim macros, such as \LPack{shortvrb} or %
+\LPack{doc} for example in which there is no explicit \lstinline+\macro+ in the
+document by means of which the abbreviated form can be detected, for
+automatic detection need to find \Lcs{DefineShortVerb} explicitly to process
+it correctly. The solution is quite simple, just add in \meta[cf=optcolor]{input file}:
+
+\begin{examplecode}
+\UndefineShortVerb{\|}
+\DefineShortVerb{\|}
+\end{examplecode}
+
+depending on the package you are using. If your \emph{\enquote{verbatim macro}} is not
+supported by default or can not detect, use the options described in \ref%
+{sec:optline}.
+
+\subsubsection{Verbatim standard}
+\label{sec:verbatim:std}
+
+These are the \emph{\enquote{classic}} environments for \emph{\enquote{writing code}} are considered %
+\meta{verbatim standard}, such as \Venv{verbatim} and \Venv{lstlisting}
+environments. The following list (including \texttt{\small\bfseries\textcolor{MediumOrchid}{*}} argument)
+is considered as \meta{verbatim standard} environments:
+
+\begin{multicols}{4}
+\begin{itemize}[font=\sffamily\small, noitemsep,leftmargin=*]
+\small
+\item \Venv{Example}
+\item \Venv{CenterExample}
+\item \Venv{SideBySideExample}
+\item \Venv{PCenterExample}
+\item \Venv{PSideBySideExample}
+\item \Venv{verbatim}
+\item \Venv{Verbatim}
+\item \Venv{BVerbatim}
+\item \Venv{LVerbatim}
+\item \Venv{SaveVerbatim}
+\item \Venv{PSTcode}
+\item \Venv{LTXexample}
+\item \Venv{tcblisting}
+\item \Venv{spverbatim}
+\item \Venv{minted}
+\item \Venv{listing}
+\item \Venv{lstlisting}
+\item \Venv{alltt}
+\item \Venv{comment}
+\item \Venv{chklisting}
+\item \Venv{verbatimtab}
+\item \Venv{listingcont}
+\item \Venv{boxedverbatim}
+\item \Venv{demo}
+\item \Venv{sourcecode}
+\item \Venv{xcomment}
+\item \Venv{pygmented}
+\item \Venv{pyglist}
+\item \Venv{program}
+\item \Venv{programl}
+\item \Venv{programL}
+\item \Venv{programs}
+\item \Venv{programf}
+\item \Venv{programsc}
+\item \Venv{programt}
+\end{itemize}
+\end{multicols}
+
+They are automatically detected \meta{verbatim standard} environments
+(including \texttt{\small\bfseries\textcolor{MediumOrchid}{*}} argument)
+generates by commands:
+
+\begin{multicols}{2}
+\begin{itemize}[font=\sffamily\small,noitemsep,leftmargin=*]
+\small
+\item \Lcs{DefineVerbatimEnvironment}
+\item \Lcs{NewListingEnvironment}
+\item \Lcs{DeclareTCBListing}
+\item \Lcs{ProvideTCBListing}
+\item \Lcs{lstnewenvironment}
+\item \Lcs{newtabverbatim}
+\item \Lcs{specialcomment}
+\item \Lcs{includecomment}
+\item \Lcs{newtcblisting}
+\item \Lcs{NewTCBListing}
+\item \Lcs{newverbatim}
+\item \Lcs{NewProgram}
+\item \Lcs{newminted}
+\end{itemize}
+\end{multicols}
+
+If any of the \meta{verbatim standard} environments is not supported by
+default or can not detected, you can use the options described in \ref%
+{sec:optline}.
+
+\subsubsection{Verbatim write}
+\label{sec:verbatim:write}
+
+Some environments have the ability to write \emph{\enquote{external files}}
+or \emph{\enquote{store content}} in memory, these environments are
+considered \meta{verbatim write}, such as \Wenv{scontents}, \Wenv{filecontents}
+or \Lenv{VerbatimOut} environments. The following list is considered (including \texttt{\small\bfseries\textcolor{MediumOrchid}{*}} argument) as %
+\meta{verbatim write} environments:
+
+\begin{multicols}{4}
+\begin{itemize}[font=\sffamily\small, noitemsep,leftmargin=*]
+\ttfamily\small
+\item \Wenv{scontents}
+\item \Wenv{filecontents}
+\item \Wenv{tcboutputlisting}
+\item \Wenv{tcbexternal}
+\item \Wenv{tcbwritetmp}
+\item \Wenv{extcolorbox}
+\item \Wenv{extikzpicture}
+\item \Wenv{VerbatimOut}
+\item \Wenv{verbatimwrite}
+\item \Wenv{filecontentsdef}
+\item \Wenv{filecontentshere}
+\item \Wenv{filecontentsdefmacro}
+\item \Wenv{filecontentsdefstarred}
+\item \Wenv{filecontentsgdef}
+\item \Wenv{filecontentsdefmacro}
+\item \Wenv{filecontentsgdefmacro}
+\end{itemize}
+\end{multicols}
+
+They are automatically detected \meta{verbatim write}
+(including \texttt{\small\bfseries\textcolor{MediumOrchid}{*}} argument) environments generates
+by commands:
+
+\begin{itemize}[font=\sffamily\small, noitemsep,leftmargin=*]
+\small
+\item \Lcs{renewtcbexternalizetcolorbox}
+\item \Lcs{renewtcbexternalizeenvironment}
+\item \Lcs{newtcbexternalizeenvironment}
+\item \Lcs{newtcbexternalizetcolorbox}
+\item \Lcs{newenvsc}
+\end{itemize}
+
+If any of the \meta{verbatim write} environments is not supported by default
+or can not detected, you can use the options described in \ref{sec:optline}.
+
+\subsection{Steps process}
+\label{sec:steps:process}
+
+For creation of the image formats, extraction of source code of environments and creation of an
+\meta[cf=optcolor]{output file}, \Lscript{pst2pdf} need a various steps. Let's assume that the %
+\meta[cf=optcolor]{input file} is \LFile{test.tex}, \meta[cf=optcolor]{output file} is %
+\LFile{test-pdf.tex}, the working directory are \enquote{\texttt{./}}, the
+directory for images are \texttt{./images}, the temporary
+directory is \texttt{/tmp} and we want to generate images in \Limgform{pdf}
+format and \meta{standalone} files for all environments extracted.
+
+We will use the following code as \LFile{test.tex}:
+
+\begin{examplecode}[numbers=left,frame=single]
+% Some commented lines at begin file
+\documentclass{article}
+\usepackage{pstricks}
+\begin{document}
+Some text
+\begin{pspicture}
+  Some code
+\end{pspicture}
+Always use \verb|\begin{pspicture}| and \verb|\end{pspicture}| to open
+and close environment
+\begin{pspicture}
+  Some code
+\end{pspicture}
+Some text
 \begin{verbatim}
 \begin{pspicture}
-\psset{...}
-pstricks code
+  Some code
 \end{pspicture}
 \end{verbatim}
-\end{minipage}
-\begin{minipage}[c]{0.25\textwidth}
+Some text
+\end{document}
+Some lines that will be ignored by the script
+\end{examplecode}
+
+\subsubsection{Validating Options}
+
+The first step is read and validated \oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options} from the command
+line, verifying that \LFile{test.tex} contains \emph{some} environment to extract,
+check the directory \texttt{./images} if it doesn't exist create it and create a temporary directory \texttt{/tmp/hG45uVklv9}.
+
+The entire \LFile{test.tex} file is loaded into memory and \emph{\enquote{split}} to start the extraction process.
+
+\subsubsection{Comment and ignore}
+In the second step, once the file \LFile{test.tex} is loaded and divided in memory,
+proceeds (in general terms) as follows:
+
+\begin{quotation}
+Search the words \lstinline|\begin{| and \lstinline|\end{| in verbatim standard, verbatim write, verbatim in line and
+commented lines, if it finds them, converts to \lstinline|\BEGIN{| and \lstinline|\END{|, then places all code to
+extract inside the \lstinline|\begin{preview}| \ldots \lstinline|\end{preview}|.
+\end{quotation}
+
+At this point \emph{\enquote{all}} the code you want to extract is inside \lstinline|\begin{preview}|\ldots\lstinline|\end{preview}|.
+
+\subsubsection{Creating standalone files and extracting}
+
+In the third step, the script generate \meta{standalone} files: \LFile{test-fig-1.tex},
+\LFile{test-fig-2.tex}, \dots{} and saved in \texttt{./images} then proceed in two ways
+according to the \oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options}
+passed to generate a temporary file with a random number (1981 for example):
+
+\begin{enumerate}[leftmargin=*]
+\item If script is call \emph{without} \cmdopt{noprew} options, the following lines
+will be added at the beginning of the \LFile{test.tex} (in memory):
+
+\begin{examplecode}
+\PassOptionsToPackage{inactive}{pst-pdf}%
+\AtBeginDocument{%
+\RequirePackage[inactive]{pst-pdf}%
+\RequirePackage[active,tightpage]{preview}%
+\renewcommand\PreviewBbAdjust{-60pt -60pt 60pt 60pt}}%
+% rest of input file
+\end{examplecode}
+
+The different parts of the file read in memory are joined  and save in a temporary
+file \LFile{test-fig-1981.tex} in \texttt{./}. This file will contain all the environments
+for extraction between \lstinline|\begin{preview}|\ldots\lstinline|\end{preview}| along with the rest of the document.
+If the document contains images, these must be in the formats supported by the \emph{engine} selected to process the \meta{input file}.
+
+\item If script is call \emph{with} \cmdopt{noprew} options, the \lstinline|\begin{preview}|\ldots\lstinline|\end{preview}|
+lines are only used as delimiters for extracting the content \emph{without} using the package \LPack{preview}, the following lines
+will be added at the beginning of the \LFile{test.tex} (in memory):
+
+\begin{examplecode}
+\PassOptionsToPackage{inactive}{pst-pdf}%
+\AtBeginDocument{%
+\RequirePackage[inactive]{pst-pdf}}%
+% only environments extracted
+\end{examplecode}
+
+Then it is joined with all extracted environments separated by \Lcs{newpage} and saved
+in a temporary file \LFile{test-fig-1981.tex} in \enquote{\texttt{./}}.
+
+\end{enumerate}
+
+If \cmdopt{norun} is passed, the temporary file \LFile{test-fig-1981.tex}
+is renamed to \LFile{test-fig-all.tex} and moved to \texttt{./images}.
+
+\subsubsection{Generate image formats}
+
+In the fourth step, the script generating the file \LFile{test-fig-1981.pdf} with all code extracted and croping, running:
+\begin{examplecmd}
+[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -recorder -shell-escape test-fig-1981.tex
+[user@machine ~:]§ pdfcrop --margins `\small\textcolor{gray}{0}` test-fig-1981.pdf test-fig-1981.pdf
+\end{examplecmd}
+
+Now move \LFile{test-fig-1981.pdf} to \texttt{/tmp/hG45uVklv9} and rename to \LFile{test-fig-all.pdf}, generate image files \LFile{test-fig-1.pdf}
+and \LFile{test-fig-2.pdf} and copy to \texttt{./images}. The file \LFile{test-fig-1981.tex} is
+moved to the \texttt{./images} and rename to \LFile{test-fig-all.tex}.
+
+Note the options passed to \meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} always use \prgopt*{recorder}\prgopt*{shell-escape}.
+
+\subsubsection{Create output file}
+
+In the fifth step, the script creates the output file \LFile{test-pdf.tex} converting all extracted code to
+\Lcs{includegraphics}, remove all \PST{} packages and content betwen \lstinline|%CleanPST ... %CleanPST|, then
+adding the following lines at end of preamble:
+
+\begin{examplecode}[numbers=left]
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{grfext}
+\PrependGraphicsExtensions*{.pdf}
+\end{examplecode}
+
+The script will try to detect whether the \LPack{graphicx} package and
+the \Lcs{graphicspath} command are in the preamble of the \meta[cf=optcolor]{output file}.
+If it is not possible to find it, it will read the \Lext{log} file generated by the temporary file.
+Once the detection is complete, the package \LPack{grfext} and \Lcs{PrependGraphicsExtensions*}
+will be added at the end of the preamble, then proceed to run:
+
+\begin{examplecmd}
+[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -recorder -shell-escape test-pdf.tex
+\end{examplecmd}
+generating the file \LFile{test-pdf.pdf}.
+
+\subsubsection{Clean temporary files and dirs}
+
+In the sixth step, the script read the files \LFile{test-fig-1981.fls}
+and \LFile{test-out.fls}, extract the information from the
+temporary files and dirs generated in the process in \enquote{\texttt{./}} and then
+delete them together with the directory \texttt{/tmp/hG45uVklv9}.
+
+Finally the output file \texttt{test-pdf.tex} looks like this:
+
+\begin{examplecode}[numbers=left]
+% some commented lines at begin document
+\documentclass{article}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{grfext}
+\PrependGraphicsExtensions*{.pdf}
+\begin{document}
+Some text
+\includegraphics[scale=1]{test-fig-1}
+Always use \verb|\begin{pspicture}| and \verb|\end{pspicture}| to open
+and close environment
+\includegraphics[scale=1]{test-fig-2}
+Some text
 \begin{verbatim}
-\begin{pspicture*}
-\psset{...}
-pstricks code
-\end{pspicture*}
+\begin{pspicture}
+  Some code
+\end{pspicture}
 \end{verbatim}
-\end{minipage}
-\begin{minipage}[c]{0.25\textwidth}
-\begin{verbatim}
-\begin{postscript}
-\psset{...}
-pstricks code
-\end{postscript}
-\end{verbatim}
-\end{minipage}
+Some text
+\end{document}
+\end{examplecode}
 
-\vspace{10pt}
-Note: When using the default mode, images are created using \Lprog{Ghostscript} and \LPack{preview} package, in this case, it is not necessary
-to write \Lenv{psset} into \PST\ environment.
+\section{Default extracted environments}
+\label{sec:extract:env}
 
-\newpage
+\nxLprog{pst2pdf} support fourth environments for extraction. Internally
+the script converts all environments to extract in \Lenv{preview} environments.
+Is better comment this package in preamble unless the option \cmdopt{noprew} is used.
 
-\section{Running the script}
+\DescribeTE{postscript}
+Environment provide by \LPack{pst-pdf}\cite{pst-pdf}, \LPack{auto-pst-pdf}\cite{auto-pst-pdf}
+and \LPack{auto-pst-pdf-lua}\cite{auto-pst-pdf-lua} packages. Since the \LPack{pst-pdf}, \LPack{auto-pst-pdf}
+and \LPack{auto-pst-pdf-lua} packages internally use the \LPack{preview} package, is better comment this in preamble.
+Only the \emph{content} of this environment is extracted and \emph{\enquote{not}} the environment itself when using the
+\cmdopt{srcenv} option. The \Lenv{postscript} environment should always be used, when there is some code before a \Lenv{pspicture}
+environment or for some code which is not inside of a \Lenv{pspicture} environment.
 
-\subsection{Default mode}
-The general syntax for the \Lprog{perl} \emph{script} is simple:
+\DescribeTE{pspicture}
+Environment provide by \LPack{pstricks}\cite{girou:02:} package. The plain \hologo{TeX}
+syntax \lstinline|\pspicture ... \endpspicture| its converted to \hologo{LaTeX} syntax
+\lstinline|\begin{pspicture} ... \end{pspicture}| if not within the \Lenv{PSTexample} or \Lenv{postscript} environments.
 
-\begin{BDef}
-\nxLprog{perl} \nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{--options}
-\end{BDef}
+\DescribeTE{psgraph}
+Environment provide by \LPack{pst-plot}\cite{pst-plot} package. The plain \hologo{TeX} syntax \lstinline|\psgraph ... \endpsgraph|
+its converted to \hologo{LaTeX} syntax \lstinline|\begin{psgraph} ... \end{psgraph}| if
+not within the \Lenv{PSTexample} or \Lenv{postscript} environments.
 
-For \TeX Live users:
+\DescribeTE{PSTexample}
+Environment provide by \LPack{pst-exa}\cite{pst-exa} package. The script automatically detects the
+\lstinline|\begin{PSTexample}|  \lstinline|...\end{PSTexample}|
+environments and processes them as separately compiled files. The user should have loaded the
+package with [\Loption{swpl}] or [\Loption{tcb}] option.
 
-\begin{BDef}
-\nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{--options}
-\end{BDef}
+\section{Remove \PST\ code}
 
-In this way \nxLprog{pst2pdf} creates a new file called \Larg{file-pst.tex} and copy all \Lenv{pspicture}
-and \Lenv{postscript} environments, then processed and create file-pdf.pdf and file-fig-1.pdf, file-fig-2.pdf, file-fig-\dots.pdf and file-fig-1.tex, file-fig-2.tex, file-fig-\dots.tex for all \Lenv{pspicture} and \Lenv{postscript} using \nxLprog{Ghostscript}.
-\subsection{Single mode}
-\label{single}
-If you do not have \nxLprog{Ghostscript} use the option \Loption{-np,---single} in this mode, the files are processed separately (take a more time to create images files). For example:
+By design, the script remove all \PST{} packages in preamble of \meta{output file}, if you need delete other \PST\ code in preamble use:
 
-\begin{BDef}
-\nxLprog{pst2pdf} \Larg{file.tex} \OptArg*{---single}
-\end{BDef}
+\DescribeTE*{CleanPST}
+All content betwen \lstinline|%CleanPST ... %CleanPST| are deleted in preamble of the \meta[cf=optcolor]{output file}.
+This lines can \emph{not} be nested and should be at the beginning of the line and in separate lines.
 
-create file-pdf.pdf and file-fig-1.pdf, file-fig-2.pdf, file-fig-\dots.pdf and file-fig-1.tex, file-fig-2.tex, file-fig-\dots.tex for all \Lenv{pspicture} and \Lenv{postscript} environments (see \ref{options}).
+\section{Supported image formats}
+\label{sec:image:format}
 
-\section{Options}
-\label{options}
-The options listed in Table~\ref{perloptions} refer only to the \emph{script} and not the \LaTeX\ file.
+The \Larga{image formats} generated by the \Lscript{pst2pdf} using \Lprog{Ghostscript}
+and \Lprog{poppler-utils} are the following command lines:
 
-\begin{table}[htp]
-\caption{Optional arguments for \nxLprog{pst2pdf}}\label{perloptions}
-\begin{tabularx}{\linewidth}{@{} l l >{\ttfamily}l X @{}}\\\toprule
-\emph{name} & \emph{values} & \textrm{\emph{default}} & \emph{description}\\\midrule
-\Loption{-h,---help}     & boolean & 1        & print help and exit.\\
-\Loption{-l,---license}  & boolean & 0        & print license and exit.\\
-\Loption{-v,---version}  & boolean & 1     & print version and exit.\\
-\Loption{-m,---margins}  & literal & 1   & margins for pdfcrop (in bp).\\
-\Loption{-d,---dpi}      & integer & 300      & the dots per inch for a created \Lext{ppm} file.\\
-\Loption{-j,---jpg}      & boolean & 0        & creates \Lext{jpg} images (need \Lprog{Ghostscript}).\\
-\Loption{-p,---png}      & boolean & 0        & creates \Lext{png} images (need \Lprog{Ghostscript}).\\
-\Loption{-e,---eps}      & boolean & 0        & creates \Lext{eps} images (need \Lprog{pdftops}).\\
-\Loption{-s,---svg}      & boolean & 0        & creates \Lext{ppm} images (need \Lprog{pdf2svg}).\\
-\Loption{-P,---ppm}      & boolean & 0        & creates \Lext{ppm} images (need \Lprog{pdftoppm}).\\
-\Loption{-c,---clear}    & boolean & 0        & delete all temporary files.\\
-\Loption{-a,---all}      & boolean & 0        & generte all images type and clear.\\
-\Loption{-x,---xetex}    & boolean & 0        & using \Lprog{xelatex} instead of \Lprog{latex} for process.\\
-\Loption{-np,---single}   & boolean & 0        & create images type (whitout Ghostscript).\\
-\Loption{-ni,---noimages} & boolean & 0    		& generate file-pdf.tex, but no images.\\
-\Loption{-ns,---nosource} & boolean & 0    		& delte all source for images.\\
-\Loption{---imgdir} & literal & images/  & the directory for the created images.\\
-\Loption{---ignore} & literal & other   & skip other verbatim environment.\\
-\Loption{---Verbose}  & boolean & 1        & for a long \nxLprog{pst2pdf} log.\\
-\Loption{---bibtex}   & boolean & 0           & runs \Lprog{bibtex}.\\
-\Loption{---bibtex}   & boolean & 0          & runs \Lprog{biber} if a file with extension \Lext{bcf} exists. \\\bottomrule
-\end{tabularx}
-\end{table}
+\DescribeIF{pdf}
+The image format generated using \Lprog{Ghostscript}. The line executed by the system is:
 
-For Help in command line use:
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress
+\end{examplecmd}
 
-\begin{BDef}
-\nxLprog{pst2pdf} \OptArg*{--help}
-\end{BDef}
+\DescribeIF{eps}
+The image format generated using \Lprog{pdftoeps}. The line executed by the system is:
 
-\section{Other image format}
-If you need to create other image formats use \nxLprog{pst2pdf}, move to images dir and use
-\nxLprog{mogrify} command (from \Lprog{ImageMagick}), for examples:\\
+\begin{examplecmd}
+[user@machine ~:]§ pdftops -q -eps
+\end{examplecmd}
 
-\begin{BDef}
-\nxLprog{mogrify} -format tiff \OptArg*{*.ppm}
-\end{BDef}
-generate \Lext{tiff} images files.
+\DescribeIF{png}
+The image format generated using \Lprog{Ghostscript}. The line executed by the system is:
+
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=pngalpha -r150
+\end{examplecmd}
+
+\DescribeIF{jpg}
+The image format generated using \Lprog{Ghostscript}. The line executed by the system is:
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=jpeg -r150 -dJPEGQ=100 \
+                      -dGraphicsAlphaBits=4 -dTextAlphaBits=4
+\end{examplecmd}
+
+\DescribeIF{ppm}
+The image format generated using \Lprog{pdftoppm}. The line executed by the system is:
+
+\begin{examplecmd}
+[user@machine ~:]§ pdftoppm -q -r 150
+\end{examplecmd}
+
+\DescribeIF{tiff}
+The image format generated using \Lprog{Ghostscript}. The line executed by the system is:
+
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=tiff32nc -r150
+\end{examplecmd}
+
+\DescribeIF{svg}
+The image format generated using \Lprog{pdftocairo}. The line executed by the system is:
+
+\begin{examplecmd}
+[user@machine ~:]§ pdftocairo -q -r 150
+\end{examplecmd}
+
+\DescribeIF{bmp}
+The image format generated using \Lprog{Ghostscript}. The line executed by the system is:
+
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=bmp32b -r150
+\end{examplecmd}
+
+\section{How to use}
+
+\subsection{Syntax}
+
+The syntax for \myscript\ is simple, if your use the version provided in your \hologo{TeX} distribution:
+
+\begin{examplecmd}
+[user@machine ~:]§  pst2pdf `\small\oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options} \meta[cf=optcolor]{input file}`
+\end{examplecmd}
+or
+\begin{examplecmd}
+[user@machine ~:]§  pst2pdf `\small\meta[cf=optcolor]{input file} \oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options}`
+\end{examplecmd}
+If the development version is used:
+\begin{examplecmd}
+[user@machine ~:]§  perl pst2pdf `\small\oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options} \meta[cf=optcolor]{input file}`
+\end{examplecmd}
+
+The extension valid for \meta[cf=optcolor]{input file} are \Lext{tex} or \Lext{ltx},
+relative or absolute paths for files and directories is not supported. If used without
+\oarg[type=tt,cf=optcolor,sbc=gray,ac=lightgray]{options} the extracted environments are converted to \Limgform{pdf}
+image format and saved in the \texttt{./images} directory using \Lprog{latex}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lprog{dvips}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lscript{ps2pdf}
+and \LPack{preview} package for process \meta[cf=optcolor]{input file} and \Lprog{pdflatex} for compiler \meta[cf=optcolor]{output file}.
+
+\subsection{Command line interface}
+\label{sec:optline}
+
+The script provides a \emph{command line interface} with short \textcolor{optcolor}{\bfseries\texttt{-}}
+and long \textcolor{optcolor}{\bfseries\texttt{--}} option, they may be given before
+the name of the \meta[cf=optcolor]{input file}, the order of specifying the options is not significant.
+Options that accept a \meta{value} require either a blank space \verb*| | or \textcolor{optcolor}{\bfseries\texttt{=}}
+between the option and the \meta{value}. Some short options can be bundling.
+
+\DescribeCmd[h]{help}{bolean}{off}
+Display a command line help and exit.
+
+\DescribeCmd[l]{log}{bolean}{off}
+Write a \LFile{pst2pdf.log} file with all process information.
+
+\DescribeCmd[v]{version}{bolean}{off}
+Display the current version (\fileversion) and exit.
+
+\DescribeCmd[V]{verbose}{bolean}{off}
+Show verbose information of process in terminal.
+
+\DescribeCmd[d]{dpi}{integer}{150}
+Dots per inch for images files. Values are positive integers less than or equal to 2500.
+
+\DescribeCmd[t]{tif}{bolean}{off}
+Create a \Lext{tif} images files using \Lprog{Ghostscript}.
+
+\DescribeCmd[b]{bmp}{bolean}{off}
+Create a \Lext{bmp} images files using \Lprog{Ghostscript}.
+
+\DescribeCmd[j]{jpg}{bolean}{off}
+Create a \Lext{jpg} images files using \Lprog{Ghostscript}.
+
+\DescribeCmd[p]{png}{bolean}{off}
+Create a \Lext{png} transparent image files using \Lprog{Ghostscript}.
+
+\DescribeCmd[e]{eps}{bolean}{off}
+Create a \Lext{eps} image files using \Lprog{pdftops}.
+
+\DescribeCmd[s]{svg}{bolean}{off}
+Create a \Lext{svg} image files using \Lprog{pdftocairo}.
+
+\DescribeCmd[P]{ppm}{bolean}{off}
+Create a \Lext{ppm} image files using \Lprog{pdftoppm}.
+
+\DescribeCmd[g]{gray}{bolean}{off}
+Create a gray scale for all images using \Lprog{Ghostscript}. The line behind this options is:
+
+\begin{examplecmd}
+[user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress        \
+                      -sColorConversionStrategy=Gray -dProcessColorModel=/DeviceGray
+\end{examplecmd}
+
+\DescribeCmd[f]{force}{bolean}{off}
+Try to capture \lstinline|\psset|\marg[type=tt]{code} to extract.
+When using the \cmdopt{force} option the script will try to capture \lstinline|\psset|\marg[type=tt]{code} and
+leave it inside the \Lenv{preview} environment, any line that is between \lstinline|\psset|\marg[type=tt]{code} and
+\lstinline|\begin{pspicture}| will be captured.
+
+\DescribeCmd[np]{noprew}{bolean}{off}
+Create images files without \LPack{preview} package. The \lstinline|\begin{preview}|\ldots \lstinline|\end{preview}|
+lines are only used as delimiters for extracting the content \emph{without} using the package \LPack{preview}.
+Using this option \emph{\enquote{only}} the extracted environments are processed and not the whole \meta[cf=optcolor]{input file}, sometimes
+it is better to use it together with \cmdopt{force}. Alternative name \cmdopt{single}.
+
+\DescribeCmd[m]{margins}{integer}{0}
+Set margins in bp for \Lscript{pdfcrop}.
+
+\DescribeCmd[r]{runs}{\textnormal{\ttfamily 1\textbar 2\textbar 3}}{1}
+Set the number of times the \meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} will run
+on the \meta[cf=optcolor]{input file} for environment extraction.
+
+\DescribeCmd{myverb}{macro name}{myverb}
+Set custom verbatim command \lstinline+\myverb+. Just pass the \meta{macro name}{}
+\emph{without} \enquote{\textcolor{optcolor}{\texttt{\bfseries\textbackslash}}}.
+
+\DescribeCmd{ignore}{environment name}{empty}
+Add a verbatim environment to internal list.
+
+\DescribeCmd{imgdir}{string}{images}
+Set the name of directory for save generated files. Only the \meta{name} of directory
+must be passed \emph{without} relative or absolute paths.
+
+\DescribeCmd{srcenv}{bolean}{off}
+Create separate files with \emph{\enquote{only code}} for all extracted
+environments.
+
+\DescribeCmd[ni]{norun}{bolean}{off}
+Execute the script, but do not create image files. This option is designed to
+to generate standalone files or used in conjunction with \cmdopt{srcenv} and to
+debug the \meta[cf=optcolor]{output file}. Alternative name \cmdopt{noimages}.
+
+\DescribeCmd{nopdf}{bolean}{off}
+Don't create a \Lext{pdf} image files.
+
+\DescribeCmd{nocrop}{bolean}{off}
+Don't run \Lscript{pdfcrop} in image files.
+
+\DescribeCmd[ns]{nosource}{bolean}{off}
+Don't create standalone files.
+
+\DescribeCmd[x]{xetex}{bolean}{off}
+Using \Lprog{xelatex} compiler \meta[cf=optcolor]{input file} and \meta[cf=optcolor]{output file}.
+
+\DescribeCmd{luatex}{bolean}{off}
+Using \Lprog{dvilualatex}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lprog{dvips}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lscript{ps2pdf}
+for compiler \meta[cf=optcolor]{input file} and \Lprog{lualatex} for \meta[cf=optcolor]{output file}.
+
+\DescribeCmd{arara}{bolean}{off}
+Use \Lprog{arara}\footnote{\url{https://ctan.org/pkg/arara}} tool for compiler \meta[cf=optcolor]{output file}.
+This option is designed to full process \meta[cf=optcolor]{output file}, is mutually
+exclusive with \cmdopt{latexmk} option.
+
+\DescribeCmd{latexmk}{bolean}{off}
+Using \Lscript{latexmk}\footnote{\url{https://www.ctan.org/pkg/latexmk}} for process \meta[cf=optcolor]{output file}.
+This option is designed to full process \meta[cf=optcolor]{output file}, is mutually exclusive with \cmdopt{arara}.
+
+\DescribeCmd{zip}{bolean}{off}
+Compress the files generated by the script in \texttt{./images} in \Lext{zip} format.
+Does not include \meta[cf=optcolor]{output file}.
+
+\DescribeCmd{tar}{bolean}{off}
+Compress the files generated by the script in \texttt{./images} in \Lext{tar.gz} format.
+Does not include \meta[cf=optcolor]{output file}.
+
+\DescribeCmd{bibtex}{bolean}{off}
+Run \Lprog{bibtex} on the \Lext{aux} file (if exists), is mutually
+exclusive with \cmdopt{biber} option.
+
+\DescribeCmd{biber}{bolean}{off}
+Run \Lprog{biber} on the \Lext{bcf} file (if exists), is mutually
+exclusive with \cmdopt{bibtex} option.
+
+\subsection{Example of usage}
+
+An example of usage from command line:
+
+\begin{examplecmd}
+[user@machine ~:]§ pst2pdf --luatex -e -p -j --imgdir pics test.ltx
+\end{examplecmd}
+
+Create a \texttt{./pics} directory (if it does not exist) with all extracted environments converted to image
+formats (\Lext{pdf}, \Lext{eps}, \Lext{png}, \Lext{jpg}) in individual files, an stanalone files (\Lext{ltx}) for all environments extracted,
+an output file \LFile{test-pdf.ltx} with all extracted environments converted to \Lcs{includegraphics} and a single file
+\LFile{test-fig-all.ltx} with only the extracted environments
+using \Lprog{dvilualatex}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lprog{dvips}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lscript{ps2pdf}
+and \LPack{preview} package for for process \LFile{test.ltx} and
+\Lprog{lualatex} for \LFile{test-pdf.ltx}.
+
+\section{Working in another way}
+
+By design, the script generates separate images and files following a predetermined
+routine that has already been described in this documentation. Another way to generate
+images is as follows:
+
+\begin{enumerate}[font=\small, nosep, noitemsep,leftmargin=*]
+\item Execute the script using \cmdopt{norun} to generate \meta{standalone} files, move to \texttt{./images}
+and generate \Lext{pdf} files, then runing:
+
+\begin{examplecmd}
+[user@machine~:]§ for i in *.tex; do `\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i;done
+[user@machine~:]§ for i in *.pdf; do pdfcrop `\small\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i $i;done
+\end{examplecmd}
+
+\item Execute the script using \cmdopt{norun}, move to \texttt{./images} and generate \Lext{dvi} or \Lext{xdv} file, then runing:
+
+\begin{examplecmd}
+[user@machine~:]§ `\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.tex
+[user@machine~:]§ `\small\Lscript{pdfcrop} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.dvi
+\end{examplecmd}
+
+\end{enumerate}
+
 %\newpage
 \clearpage
 \nocite{*}
 \printbibliography
 
 \printindex
+
 \end{document}
