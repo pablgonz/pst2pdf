@@ -70,6 +70,7 @@ my $verbose = 0;        # verbose info
 my @verb_env_tmp;       # store verbatim environments
 my $tmpverbenv;         # save verbatim environment
 my $myverb = 'myverb' ; # internal \myverb macro
+my $write18;            # storing write18 for compiler in TeXLive and MikTeX
 my $gscmd;              # ghostscript executable name
 my $gray;               # gray scale ghostscript
 my $log      = 0;       # log file
@@ -1319,7 +1320,7 @@ if ($envNo == 0 and $exaNo == 0) {
 ### Storing ALL current options of script process for .log file
 if ($zip) { $opts_cmd{boolean}{zip} = 1; }
 if ($tar) { $opts_cmd{boolean}{tar} = 1; }
-if ($shell) { $opts_cmd{boolean}{nopdf} = 1; }
+if ($shell) { $opts_cmd{boolean}{shell} = 1; }
 if ($nopdf) { $opts_cmd{boolean}{nopdf} = 1; }
 if ($norun) { $opts_cmd{boolean}{norun} = 1; }
 if ($nocrop) { $opts_cmd{boolean}{nocrop} = 1; }
@@ -1396,7 +1397,6 @@ my $msg_compiler = $xetex ?  'xelatex'
                  ;
 
 ### Set write18 for compiler in TeXLive and MikTeX
-my $write18;
 if ($shell) {
     $write18 = '-shell-escape';
     $write18 = '--enable-write18' if defined $ENV{'TEXSYSTEM'} and $ENV{'TEXSYSTEM'} =~ /miktex/i;
@@ -1482,9 +1482,17 @@ if (!$nosource) {
     if ($srcenv) {
         Log('Extract source code of all captured environments without preamble');
         if ($STDenv) {
-            Log("Creating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
-            print "Creating $envNo $fileSTD ", color('magenta'), "[$ext]",
-            color('reset'), " with source code for $envSTD\r\n";
+            if (-e "$imgdir/$name-fig-1$ext") {
+                Log("Recreating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
+                print "Recreating $envNo $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envSTD\r\n";
+            }
+            else {
+                Log("Creating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
+                print "Creating $envNo $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envSTD\r\n";
+            }
+            # Write files
             while ($tmpbodydoc =~ m/$BP(?:\s*)?(?<env_src>.+?)(?:\s*)?$EP/gms) {
                 open my $outexasrc, '>', "$imgdir/$src_name$srcNo$ext";
                     print {$outexasrc} $+{'env_src'};
@@ -1493,9 +1501,17 @@ if (!$nosource) {
             continue { $srcNo++; }
         }
         if ($PSTexa) {
-            Log("Creating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
-            print "Creating $exaNo $fileEXA ", color('magenta'), "[$ext]",
-            color('reset'), " with source code for $envEXA\r\n";
+            if (-e "$imgdir/$name-fig-exa-1$ext") {
+                Log("Recreating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
+                print "Recreating $exaNo $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envEXA\r\n";
+            }
+            else {
+                Log("Creating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
+                print "Creating $exaNo $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envEXA\r\n";
+            }
+            # Write files
             while ($tmpbodydoc =~ m/$BE\[.+?(?<pst_exa_name>$imgdir\/.+?-\d+)\}\]\s*(?<exa_src>.+?)\s*$EE/gms) {
                 open my $outstdsrc, '>', "$+{'pst_exa_name'}$ext";
                     print {$outstdsrc} $+{'exa_src'};
@@ -1506,9 +1522,17 @@ if (!$nosource) {
     else {
         Log('Extract source code of all captured environments with preamble');
         if ($STDenv) {
-            Log("Creating a $envNo standalone $fileSTD [$ext] for $envSTD in $imgdirpath");
-            print "Creating a $envNo standalone $fileSTD ", color('magenta'), "[$ext]",
-            color('reset'), " for $envSTD\r\n";
+            if (-e "$imgdir/$name-fig-1$ext") {
+                Log("Recreating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
+                print "Recreating $envNo $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envSTD\r\n";
+            }
+            else {
+                Log("Creating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
+                print "Creating $envNo $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envSTD\r\n";
+            }
+            # Write files
             while ($tmpbodydoc =~ m/$BP(?:\s*)?(?<env_src>.+?)(?:\s*)?$EP/gms) {
                 open my $outstdfile, '>', "$imgdir/$src_name$srcNo$ext";
                     print {$outstdfile} "$sub_prea\n$+{'env_src'}\n\\end\{document\}";
@@ -1517,9 +1541,17 @@ if (!$nosource) {
             continue { $srcNo++; }
         }
         if ($PSTexa) {
-            Log("Creating a $exaNo standalone $fileEXA [$ext] for $envEXA in $imgdirpath");
-            print "Creating a $exaNo standalone $fileEXA ", color('magenta'), "[$ext]",
-            color('reset'), " for $envEXA\r\n";
+            if (-e "$imgdir/$name-fig-exa-1$ext") {
+                Log("Recreating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
+                print "Recreating $exaNo $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envEXA\r\n";
+            }
+            else {
+                Log("Creating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
+                print "Creating $exaNo $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " with source code for $envEXA\r\n";
+            }
+            # Write files
             while ($tmpbodydoc =~ m/$BE\[.+?(?<pst_exa_name>$imgdir\/.+?-\d+)\}\]\s*(?<exa_src>.+?)\s*$EE/gms) {
                 open my $outexafile, '>', "$+{'pst_exa_name'}$ext";
                     print {$outexafile} "$sub_prea\n$+{'exa_src'}\n\\end\{document\}";
