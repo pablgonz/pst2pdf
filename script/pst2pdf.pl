@@ -3,7 +3,7 @@ use v5.26;
 
 ############################# LICENCE ##################################
 # $Id: pst2pdf.pl 119 2014-09-24 12:04:09Z herbert $                   #
-# v0.19  2020-08-01 simplify the use of PSTricks with pdf              #
+# v0.19  2020-08-16 simplify the use of PSTricks with pdf              #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
 #     Pablo González Luengo <pablgonz@yahoo.com>                       #
 #                                                                      #
@@ -65,7 +65,7 @@ my $zip;                # compress files generated in .zip
 my $tar;                # compress files generated in .tar.gz
 my $help;               # help info
 my $version;            # version info
-my $license;            # license info
+my $shell;              # enable -shell-escape
 my $verbose = 0;        # verbose info
 my @verb_env_tmp;       # store verbatim environments
 my $tmpverbenv;         # save verbatim environment
@@ -81,8 +81,8 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $date       = '2020-08-01';
-my $ident      = '$Id: pst2pdf.pl 119 2020-08-01 12:04:09Z herbert $';
+my $date       = '2020-08-16';
+my $ident      = '$Id: pst2pdf.pl 119 2020-08-16 12:04:09Z herbert $';
 
 ### Log vars
 my $LogFile = "$scriptname.log";
@@ -261,17 +261,16 @@ find_ghostscript();
 my $usage = <<"END_OF_USAGE";
 ${title}
     pst2pdf run a TeX source, read all postscript, pspicture, psgraph
-    and PSTexample environments and convert in images pdf,eps,jpg,svg
-    or png format (default pdf), extract source code and create new
-    file with all environments converted to \\includegraphics and runs
-    (pdf/Xe/lua)latex.
+    and PSTexample environments and convert in image format (default pdf),
+    extract source code in standalone files and create new file with all
+    environments converted to \\includegraphics and runs (pdf/Xe/lua)latex.
 
 Usage: $scriptname [<options>] <texfile>[.tex|.ltx]
        $scriptname <texfile>[.tex|.ltx] [options]
 
    If used without [<options>] the extracted environments are saved in
    standalone files and converted to pdf image format in the "./images"
-   directory using "latex>dvips>ps2pdf" and preview package to process 
+   directory using "latex>dvips>ps2pdf" and "preview" package to process
    <input file> and "pdflatex" for compiler <output file>.
 
 Options:
@@ -304,8 +303,9 @@ Options:
                      Set margins in bp for pdfcrop               [0]
   --myverb <macro>   Add "\\macroname" to verbatim inline search  [myverb]
   --ignore <environment>
-                     Add "environment" to verbatim environments  [off]
+                     Add "environment" to verbatim environments  [empty]
   --srcenv           Create files with only code environment     [off]
+  --shell            Enable \\write18\{SHELL COMMAND\}              [off]
   --nopdf            Do not create images in pdf format          [off]
   --nocrop           Does not run pdfcrop                        [off]
   --imgdir <dirname> Set name of directory to save images/files  [images]
@@ -319,7 +319,7 @@ Options:
   --biber            Run biber on the .bcf file (if exists)      [off]
 
 Example:
-\$ $scriptname -e -p -j --imgdir=pics test.tex
+\$ $scriptname -e -p --imgdir pics test.tex
 * Create a ./pics directory (if it doesn't exist) with all extracted
 * environments converted to individual files (.pdf, .eps, .png, .tex),
 * a file test-fig-all.tex with all extracted environments and the file
@@ -327,7 +327,7 @@ Example:
 * latex>dvips>ps2pdf and preview package for <test.tex> and pdflatex
 * for <test-pdf.tex>.
 
-Suport bundling for short options $scriptname test.tex -epj --imgdir=pics
+Suport bundling for short options $scriptname -ep --imgdir pics test.tex
 See texdoc pst2pdf for full documentation.
 END_OF_USAGE
 print $usage;
@@ -347,14 +347,15 @@ my $result=GetOptions (
     'myverb=s'           => \$myverb,   # string
     'ignore=s'           => \$tmpverbenv, # string
     'c|clear'            => \$clear,    # flag
-    'ni|noimages|norun'  => \$norun,    # flag
-    'np|single|noprew'   => \$noprew,   # flag
+    'ni|norun|noimages'  => \$norun,    # flag
+    'np|noprew|single'   => \$noprew,   # flag
     'bibtex'             => \$runbibtex,# flag
     'biber'              => \$runbiber, # flag
     'arara'              => \$arara,    # flag
     'latexmk'            => \$latexmk,  # flag
     'srcenv'             => \$srcenv,   # flag
     'nopdf'              => \$nopdf,    # flag
+    'shell'              => \$shell,    # flag
     'nocrop'             => \$nocrop,   # flag
     'zip'                => \$zip,      # flag
     'tar'                => \$tar,      # flag
@@ -1318,6 +1319,7 @@ if ($envNo == 0 and $exaNo == 0) {
 ### Storing ALL current options of script process for .log file
 if ($zip) { $opts_cmd{boolean}{zip} = 1; }
 if ($tar) { $opts_cmd{boolean}{tar} = 1; }
+if ($shell) { $opts_cmd{boolean}{nopdf} = 1; }
 if ($nopdf) { $opts_cmd{boolean}{nopdf} = 1; }
 if ($norun) { $opts_cmd{boolean}{norun} = 1; }
 if ($nocrop) { $opts_cmd{boolean}{nocrop} = 1; }
@@ -1394,8 +1396,15 @@ my $msg_compiler = $xetex ?  'xelatex'
                  ;
 
 ### Set write18 for compiler in TeXLive and MikTeX
-my $write18 = '-shell-escape'; # TeXLive
-$write18 = '-enable-write18' if defined $ENV{'TEXSYSTEM'} and $ENV{'TEXSYSTEM'} =~ /miktex/i;
+my $write18;
+if ($shell) {
+    $write18 = '-shell-escape';
+    $write18 = '--enable-write18' if defined $ENV{'TEXSYSTEM'} and $ENV{'TEXSYSTEM'} =~ /miktex/i;
+}
+else {
+    $write18 = '-no-shell-escape';
+    $write18 = '--disable-write18' if defined $ENV{'TEXSYSTEM'} and $ENV{'TEXSYSTEM'} =~ /miktex/i;
+}
 
 ### Set options for compiler
 my $opt_compiler = "$write18 -interaction=nonstopmode -recorder";
@@ -1604,6 +1613,7 @@ if ($PSTexa) {
     # Remove [graphic={...}] in PSTexample example environments
     $tmpbodydoc =~ s/($BE)(?:\[graphic=\{\[scale=1\]$imgdir\/.+?-\d+\}\])/$1/gmsx;
     $tmpbodydoc =~ s/($BE\[.+?)(?:,graphic=\{\[scale=1\]$imgdir\/.+?-\d+\})(\])/$1$2/gmsx;
+    # Moving and renaming
     if ($norun) {
         Infoline("Moving and renaming $name-fig-exa-$tmp$ext to $name-fig-exa-all$ext");
         if (-e "$imgdir/$name-fig-exa-all$ext") {
@@ -1654,6 +1664,7 @@ if ($STDenv) {
             print {$allstdenv} $sub_prea.$tmpbodydoc."\n\\end{document}";
         }
     close $allstdenv;
+    # Moving and renaming
     if ($norun) {
         Infoline("Moving and renaming $name-fig-$tmp$ext to $name-fig-all$ext");
         if (-e "$imgdir/$name-fig-all$ext") {
@@ -2233,4 +2244,3 @@ Infocolor('Finish', "The execution of $scriptname has been successfully complete
 Log("The execution of $scriptname has been successfully completed");
 
 __END__
-1. Añadir -no-pdf y xdvipdmx para --xetex

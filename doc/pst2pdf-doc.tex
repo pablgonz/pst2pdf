@@ -8,10 +8,9 @@
   \newgeometry{top=0.5in, bottom=0.3in,left=1.4in,right=0.7in,%
                marginparwidth=1.3in,marginparsep=0.1in,footskip=0.2in,%
                headheight=1cm,headsep=0.27cm,reversemarginpar}%
-  \KOMAoptions{headsepline=:text}% <- added
+  \KOMAoptions{headwidth=text,headsepline=:text,footwidth=text}% <- added
 }
 \recalctypearea
-\setheadwidth[0pt]{text}
 \RedeclareSectionCommand[
   %runin=false,
   afterindent=false,
@@ -29,16 +28,29 @@
   afterskip=.25\baselineskip]{subsubsection}
 \listfiles
 \let\Lfile\LFile
-\def\myscript{pst2pdf}
-\def\fileversion{0.19}
-\def\filedate{2020-08-08}
 \usepackage{biblatex}
 \addbibresource{\jobname.bib}
-\lstset{language=PSTricks,basicstyle=\footnotesize\ttfamily}
+%\lstset{language=PSTricks,basicstyle=\footnotesize\ttfamily}
 \def\DVI{\textsc{DVI}}
 \def\PDF{\textsc{PDF}}
 \def\gs{\textsc{Ghostscript}}
 \usepackage{multicol,enumitem,hologo,accsupp,csquotes}
+
+% Identification
+\def\myscript{pst2pdf}
+\def\fileversion{0.19}
+\def\filedate{2020/08/10}
+
+% Config hyperref
+\hypersetup{
+  linktoc            = all,
+  pdftitle           = {.:: pst2pdf v\fileversion{} [\filedate] --- Running a PSTricks document with pdflatex ::.},%
+  pdfauthor          = {Pablo Gonz\'{a}lez Luengo},%
+  pdfsubject         = {Documentation for version \fileversion},%
+  pdfkeywords        = {extract, conversion, images, pstricks, standalone files},
+  pdfstartview       = {FitH},%
+  bookmarksopenlevel = 2,%
+}
 
 % Some font for verbatim examples
 \newfontfamily\lmmitalic{lmmono10-italic.otf}[
@@ -63,11 +75,11 @@
 \makeatletter
 \def\Lscript#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Script!#1@\texttt{#1}}}
 \def\Losystem#1{\texttt{#1}\index{#1@\texttt{#1}}\index{Operating system!#1@\texttt{#1}}}
-\def\Loptcmd#1{\index{Options in command line!#1@\texttt{#1}}} % \index{#1@\texttt{#1}}
+\def\Loptcmd#1{\index{Options in command line!#1@\texttt{#1}}}% \index{#1@\texttt{#1}}
 \def\Limgform#1{\texttt{#1}\index{Image format!#1@\texttt{#1}}}% \index{#1@\texttt{#1}}
 \def\Loptprg#1{\index{Compiler options!#1@\texttt{#1}}}% \index{#1@\texttt{#1}}
-\def\Venv#1{\index{Environment Verbatim!#1@\texttt{#1}}}
-\def\Wenv#1{\index{Environment Verbatim Write!#1@\texttt{#1}}}
+\def\Venv#1{\texttt{#1}\index{Environment Verbatim!#1@\texttt{#1}}}
+\def\Wenv#1{\texttt{#1}\index{Environment Verbatim Write!#1@\texttt{#1}}}
 
 % Only index a starred version
 \RenewDocumentCommand{\LFile}{sm}
@@ -112,7 +124,6 @@
     \ignorespaces%
   }%
 
-%\makeatletter
 % \myenv{environ} for margin
 \NewDocumentCommand{\myenv}{m}
   {
@@ -189,7 +200,7 @@
    type / rm .code:n = \tl_set:Nn \l_myscript_meta_font_tl { \rmfamily },
    type .initial:n = rm,
    cf .tl_set:N = \l_myscript_meta_color_tl,
-   cf .initial:n = gray,%optcolor,
+   cf .initial:n = black,%
    ac .tl_set:N = \l_myscript_meta_anglecolor_tl,
    ac .initial:n = lightgray,
    sbc .tl_set:N = \l_myscript_meta_brackcolor_tl,
@@ -316,7 +327,7 @@
     keywords=[8]{graphicx,grfext,article,document,preview,libertinus,pst-pdf},%
 % Important words 9, files used in examples
     keywordstyle=[10]{\color{OrangeRed}},%
-    keywords=[10]{test-fig-1981.tex,test-fig-1981.pdf, test-fig-1,test-fig-2,test-out,test-in.ltx,%
+    keywords=[10]{test-fig-all.pdf,test-fig-1981.tex,test-fig-1981.pdf, test-fig-1,test-fig-2,test-out,test-in.ltx,%
     test-fig-1981.tex,test-out.tex,file-in.tex,file-out,test.tex,test-fig-all.dvi,test-fig-1.svg,test-fig-all.tex},%
 }[keywords,tex,comments,strings]% end languaje
 
@@ -363,7 +374,8 @@
     xleftmargin=\dimexpr\fboxsep+\fboxrule\relax,%
     xrightmargin=\dimexpr\fboxsep+\fboxrule\relax,%
     keywordstyle=[20]{\color{gray}},% replace this color
-    keywords=[20]{--margins, -recorder,-shell-escape,-s,-o,-e,-p,-j,--imgdir,--luatex,--latexmk,--svg,--png,--nopdf,pics},%
+    keywords=[20]{--margins, -recorder,-shell-escape,-s,-o,-e,-p,-j,--imgdir,%
+    --luatex,--latexmk,--svg,--png,--nopdf,pics,-no-shell-escape,-interaction,nonstopmode},%
 % Reserved words (cmd line options)
     deletekeywords=[4]{pst2pdf},%
     classoffset=7,%
@@ -379,10 +391,11 @@
     keywords={user,machine},%
     literate=*{[}{{\textcolor{darkgray}{[}}}{1}
               {]}{{\textcolor{darkgray}{]}}}{1}
+              {=}{{\textcolor{gray}{=}}}{1}
               {@}{{\textcolor{blue}{@}}}{1}
               {\$}{{\textcolor{blue}{\$}}}{1}
               {:}{{\textcolor{blue}{:}}}{1}
-              {§}{{\textcolor{red}{\$\space}}}{1}
+              {§}{{\textcolor{red}{\$\space}}}{2}
               {~}{{\textcolor{blue}{\bfseries\textasciitilde}}}{1}%
     }% close lstset
 }%
@@ -403,9 +416,10 @@
 
 % set default style
 \lstset{style=inline}
+
 \begin{document}
 
-\title{\texttt{\myscript}}
+\title{\texttt{pst2pdf}}
 \subtitle{Running a PSTricks document with pdflatex;\\  \small v\fileversion}
 \author{Herbert Voß  \\ Pablo Gonz\'{a}lez Luengo}
 \docauthor{}
@@ -414,8 +428,8 @@
 \maketitle
 
 \begin{abstract}
-    \texttt{\myscript} run a \TeX{} source, read all \Lenv{postscript}, \Lenv{pspicture}, \Lenv{psgraph}
-    and \Lenv{PSTexample} environments and convert in images \texttt{pdf,eps,jpg,svg}
+    \texttt{pst2pdf} run a \TeX{} source, read all \texttt{postscript}, \texttt{pspicture}, \texttt{psgraph}
+    and \texttt{PSTexample} environments and convert in images \texttt{pdf,eps,jpg,svg}
     or \texttt{png} format (default \texttt{pdf}), extract source code in standalone files and create new
     file with all environments converted to \Lcs{includegraphics} and runs \texttt{(pdf/Xe/lua)latex}.
 \end{abstract}
@@ -493,22 +507,22 @@ and the \meta{steps process}.
 \subsection{The input file}
 \label{sec:inputfile}
 
-The \meta[cf=optcolor]{input file} must comply with \emph{certain characteristics} in order to
+The \meta{input file} must comply with \emph{certain characteristics} in order to
 be processed, the content at the beginning and at the end of the \meta{input
 file} is treated in a special way, before \lstinline|\documentclass| and after
 \lstinline|\end{document}| can go any type of content, internally the script will
-\emph{\enquote{split}} the \meta[cf=optcolor]{input file} at this points.
+\emph{\enquote{split}} the \meta{input file} at this points.
 
-If the \meta[cf=optcolor]{input file} contains files using \Lcs{input}\marg[type=tt]{file} or
+If the \meta{input file} contains files using \Lcs{input}\marg[type=tt]{file} or
 \Lcs{include}\marg[type=tt]{file} these will not be processed, from the side of
 the \emph{script} they only represent lines within the file, if you want
 them to be processed it is better to use the \Lscript{latexpand}\footnote{\url{https://www.ctan.org/pkg/latexpand}}
 first and then process the file.
 
 Like \Lcs{input}\marg[type=tt]{file} or \Lcs{include}\marg[type=tt]{file}, blank lines, vertical spaces and tab
-characters are treated literally, for the \emph{script} the \meta[cf=optcolor]{input file}
+characters are treated literally, for the \emph{script} the \meta{input file}
 is just a set of characters, as if it was a simple text file. It is
-advisable to format the source code \meta[cf=optcolor]{input file} using utilities such
+advisable to format the source code \meta{input file} using utilities such
 as \Lprog{chktex}\footnote{\url{https://www.ctan.org/pkg/chktex}} and
 \Lscript{latexindent}\footnote{\url{https://www.ctan.org/pkg/latexindent}}, especially if you want to
 extract the source code of the environments.
@@ -587,14 +601,14 @@ supported. They are automatically detected the \emph{verbatim macro} (including 
 Some packages define abbreviated versions for \emph{\enquote{verbatim macro}} as %
 \Lcs{DefineShortVerb}, \Lcs{lstMakeShortInline} and %
 \Lcs{MakeSpecialShortVerb}, will be detected automatically if are declared
-explicitly in \meta[cf=optcolor]{input file}.
+explicitly in \meta{input file}.
 
 The following consideration should be kept in mind for some packages that
 use abbreviations for verbatim macros, such as \LPack{shortvrb} or %
 \LPack{doc} for example in which there is no explicit \lstinline+\macro+ in the
 document by means of which the abbreviated form can be detected, for
 automatic detection need to find \Lcs{DefineShortVerb} explicitly to process
-it correctly. The solution is quite simple, just add in \meta[cf=optcolor]{input file}:
+it correctly. The solution is quite simple, just add in \meta{input file}:
 
 \begin{examplecode}
 \UndefineShortVerb{\|}
@@ -732,8 +746,8 @@ or can not detected, you can use the options described in \ref{sec:optline}.
 \label{sec:steps:process}
 
 For creation of the image formats, extraction of source code of environments and creation of an
-\meta[cf=optcolor]{output file}, \Lscript{pst2pdf} need a various steps. Let's assume that the %
-\meta[cf=optcolor]{input file} is \LFile{test.tex}, \meta[cf=optcolor]{output file} is %
+\meta{output file}, \Lscript{pst2pdf} need a various steps. Let's assume that the %
+\meta{input file} is \LFile{test.tex}, \meta{output file} is %
 \LFile{test-pdf.tex}, the working directory are \enquote{\texttt{./}}, the
 directory for images are \texttt{./images}, the temporary
 directory is \texttt{/tmp} and we want to generate images in \Limgform{pdf}
@@ -834,7 +848,7 @@ is renamed to \LFile{test-fig-all.tex} and moved to \texttt{./images}.
 
 In the fourth step, the script generating the file \LFile{test-fig-1981.pdf} with all code extracted and croping, running:
 \begin{examplecmd}
-[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -recorder -shell-escape test-fig-1981.tex
+[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -no-shell-escape -interaction=nonstopmode -recorder test-fig-1981.tex
 [user@machine ~:]§ pdfcrop --margins `\small\textcolor{gray}{0}` test-fig-1981.pdf test-fig-1981.pdf
 \end{examplecmd}
 
@@ -842,7 +856,10 @@ Now move \LFile{test-fig-1981.pdf} to \texttt{/tmp/hG45uVklv9} and rename to \LF
 and \LFile{test-fig-2.pdf} and copy to \texttt{./images}. The file \LFile{test-fig-1981.tex} is
 moved to the \texttt{./images} and rename to \LFile{test-fig-all.tex}.
 
-Note the options passed to \meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} always use \prgopt*{recorder}\prgopt*{shell-escape}.
+Note the options passed to \meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} always use \prgopt*{no-shell-escape}
+and \prgopt*{recorder}, to generate the \Lext{fls} file which is used to delete temporary files and directories after
+the process is completed and. The \cmdopt{shell} option activates \prgopt*{shell-escape} for compatibility with packages
+such as \LPack{minted} or others.
 
 \subsubsection{Create output file}
 
@@ -1112,6 +1129,9 @@ must be passed \emph{without} relative or absolute paths.
 Create separate files with \emph{\enquote{only code}} for all extracted
 environments.
 
+\DescribeCmd{shell}{bolean}{off}
+Enable \Lcs{write18}\{SHELL COMMAND\}.
+
 \DescribeCmd[ni]{norun}{bolean}{off}
 Execute the script, but do not create image files. This option is designed to
 to generate standalone files or used in conjunction with \cmdopt{srcenv} and to
@@ -1182,21 +1202,31 @@ images is as follows:
 
 \begin{enumerate}[font=\small, nosep, noitemsep,leftmargin=*]
 \item Execute the script using \cmdopt{norun} to generate \meta{standalone} files, move to \texttt{./images}
-and generate \Lext{pdf} files, then runing:
+and generate \Lext{pdf} files runing:
 
 \begin{examplecmd}
-[user@machine~:]§ for i in *.tex; do `\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i;done
-[user@machine~:]§ for i in *.pdf; do pdfcrop `\small\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i $i;done
+[user@machine~:]§for i in *.tex; do `\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i; done
+[user@machine~:]§for i in *.pdf; do pdfcrop `\small\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i $i; done
 \end{examplecmd}
 
-\item Execute the script using \cmdopt{norun}, move to \texttt{./images} and generate \Lext{dvi} or \Lext{xdv} file, then runing:
+\item Execute the script using \cmdopt{norun}, move to \texttt{./images} \Lext{pdf} file runing:
 
 \begin{examplecmd}
-[user@machine~:]§ `\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.tex
-[user@machine~:]§ `\small\Lscript{pdfcrop} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.dvi
+[user@machine~:]§`\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.tex
+[user@machine~:]§pdfcrop `\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.pdf
 \end{examplecmd}
 
 \end{enumerate}
+
+\section{Example files}
+
+The "pst2pdf" documentation provides three example files \LFile{test1.tex}, \LFile{test2.tex}
+and \LFile{test3.tex} plus an image file \LFile{tux.jpg} to test and view the script in action.
+Copy these files to a directory you have write access to and execute:
+
+\begin{examplecmd}
+[user@machine~:]§pst2pdf `\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test1.tex
+\end{examplecmd}
 
 %\newpage
 \clearpage
