@@ -1652,6 +1652,9 @@ if ($PSTexa) {
             Infocolor('Warning', "The file [$name-fig-exa-all$ext] already exists and will be rewritten");
             Log("Rewriting the file $name-fig-exa-all$ext in $imgdirpath");
         }
+        else {
+            Log("Writing the file $name-fig-exa-all$ext in $imgdirpath");
+        }
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-exa-$tmp$ext $imgdirpath/$name-fig-exa-all$ext");
         }
@@ -1702,6 +1705,9 @@ if ($STDenv) {
         if (-e "$imgdir/$name-fig-all$ext") {
             Infocolor('Warning', "The file [$name-fig-all$ext] already exists and will be rewritten");
             Log("Rewriting the file $name-fig-all$ext in $imgdirpath");
+        }
+        else {
+            Log("Writing the file $name-fig-all$ext in $imgdirpath");
         }
         if ($verbose) {
             Infocolor('Running', "mv $workdir/$name-fig-$tmp$ext $imgdirpath/$name-fig-all$ext");
