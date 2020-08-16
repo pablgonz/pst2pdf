@@ -41,6 +41,7 @@ tdslocations  = {
   "doc/support/pst2pdf/test1-pdf.pdf",
   "doc/support/pst2pdf/test2-pdf.pdf",
   "doc/support/pst2pdf/test3-pdf.pdf",
+  "doc/support/pst2pdf/tux.jpg",
   "doc/support/pst2pdf/README.md",
   "doc/support/pst2pdf/Changes",
   "scripts/pst2pdf/pst2pdf.pl",
