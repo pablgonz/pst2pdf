@@ -82,7 +82,7 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $date       = '2020-08-16';
+my $date       = '2020-08-19';
 my $ident      = '$Id: pst2pdf.pl 119 2020-08-16 12:04:09Z herbert $';
 
 ### Log vars
@@ -253,7 +253,7 @@ ${copyright}
 END_VERSION
 
 ### Standart info in terminal
-my $title = "$scriptname $nv $ident\n";
+my $title = "$scriptname $nv [$date]: Running a PSTricks document with (pdf/xe/lua)latex\n";
 
 ### Usage of script
 sub usage {
@@ -715,14 +715,9 @@ if (!$norun) {
 @ARGV < 2 or errorUsage('Unknown option or too many input files');
 
 ### Check <input file> extention
-my @SuffixList = ('.tex', '.ltx'); # valid extention
+my @SuffixList = ('.tex', '', '.ltx'); # posibles
 my ($name, $path, $ext) = fileparse($ARGV[0], @SuffixList);
-if ($ext eq '.tex' or $ext eq '.ltx') {
-    $ext = $ext;
-}
-else {
-    errorUsage('Invalid or empty extention for input file');
-}
+$ext = '.tex' if not $ext;
 
 ### Read <input file> in memory
 Log("Read input file $name$ext in memory");

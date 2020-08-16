@@ -3,11 +3,11 @@
 --]]
 
 -- Identification
-module     = "pst2pdf"
-pkgversion = "0.19"
-pkgdate    = "2020/08/16"
-ctanpkg    = module
-ctanzip    = ctanpkg.."-"..pkgversion
+module  = "pst2pdf"
+scriptv = "0.19"
+scriptd = "2020/08/19"
+ctanpkg = module
+ctanzip = ctanpkg.."-"..scriptv
 
 -- Configuration of files for build and installation
 maindir       = "."
@@ -47,8 +47,44 @@ tdslocations  = {
   "scripts/pst2pdf/pst2pdf.pl",
 }
 
+-- Clean files
+cleanfiles = {
+  ctanzip..".curlopt",
+  ctanzip..".zip",
+}
+
 flatten = false
 packtdszip = false
+
+-- Update date and version
+tagfiles = {"pst2pdf-doc.tex", "README.md","pst2pdf.pl"}
+
+function update_tag(file, content, tagname, tagdate)
+  if string.match(file, "%.tex$") then
+    content = string.gsub(content,
+                          "\\fileversion{.-}",
+                          "\\fileversion{"..scriptv.."}")
+    content = string.gsub(content,
+                          "\\filedate{.-}",
+                          "\\filedate{"..scriptd.."}")
+  end
+  if string.match(file, "README.md$") then
+    content = string.gsub(content,
+                          "Release %d+.%d+%a* %d%d%d%d%/%d%d%/%d%d",
+                          "Release "..scriptv.." "..scriptd)
+  end
+  if string.match(file, "pst2pdf.pl$") then
+    local scriptd = string.gsub(scriptd, "/", "-")
+    local scriptv = "v"..scriptv
+    content = string.gsub(content,
+                          "(my %$date %s* = ')(.-)';",
+                          "%1"..scriptd.."';")
+    content = string.gsub(content,
+                          "(my %$nv %s* = ')(.-)';",
+                          "%1"..scriptv.."';")
+  end
+  return content
+end
 
 -- Generating documentation
 typesetfiles  = {"pst2pdf-doc.tex"}
@@ -92,26 +128,6 @@ function typeset(file)
     return errorlevel
   end
   return 0
-end
-
--- Update date and version
-tagfiles = {"pst2pdf-doc.tex", "README.md"}
-
-function update_tag(file, content, tagname, tagdate)
-  if string.match(file, "%.tex$") then
-    content = string.gsub(content,
-                          "\\fileversion{.-}",
-                          "\\fileversion{"..pkgversion.."}")
-    content = string.gsub(content,
-                          "\\filedate{.-}",
-                          "\\filedate{"..pkgdate.."}")
-  end
-  if string.match(file, "README.md$") then
-    content = string.gsub(content,
-                          "Release %d+.%d+%a* %d%d%d%d%/%d%d%/%d%d",
-                          "Release "..pkgversion.." "..pkgdate)
-  end
-  return content
 end
 
 -- make_tmp_dir() function
@@ -191,8 +207,52 @@ if options["target"] == "testpkg" then
   os.exit()
 end
 
--- Clean files
-cleanfiles = {
-  ctanzip..".curlopt",
-  ctanzip..".zip",
-}
+-- Create check_marked_tags() function
+local function check_marked_tags()
+  local f = assert(io.open("doc/pst2pdf-doc.tex", "r"))
+  marked_tags = f:read("*all")
+  f:close()
+  local m_docv = string.match(marked_tags, "\\def\\fileversion{(.-)}")
+  local m_docd = string.match(marked_tags, "\\def\\filedate{(.-)}")
+
+  if scriptv == m_docv and scriptd == m_docd then
+    print("** Checking version and date in pst2pdf-doc.tex: OK")
+  else
+    print("** Warning: pst2pdf-doc.tex is marked with version "..m_docv.." and date "..m_docd)
+    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
+    print("** Check version and date in build.lua then run l3build tag")
+  end
+end
+
+-- Create check_script_tags() function
+local function check_script_tags()
+  local scriptv = "v"..scriptv
+  local scriptd = string.gsub(scriptd, "/", "-")
+
+  local f = assert(io.open("script/pst2pdf.pl", "r"))
+  script_tags = f:read("*all")
+  f:close()
+  local m_scriptd = string.match(script_tags, "my %$date %s* = '(.-)';")
+  local m_scriptv = string.match(script_tags, "my %$nv %s* = '(.-)';")
+
+  if scriptv == m_scriptv and scriptd == m_scriptd then
+    print("** Checking version and date in pst2pdf.pl: OK")
+  else
+    print("** Warning: pst2pdf.pl is marked with version "..m_scriptv.." and date "..m_scriptd)
+    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
+    print("** Check version and date in build.lua then run l3build tag")
+  end
+end
+
+-- Config tag_hook
+function tag_hook(tagname)
+  check_marked_tags()
+  check_script_tags()
+end
+
+-- Add "tagged" target to l3build CLI
+if options["target"] == "tagged" then
+  check_marked_tags()
+  check_script_tags()
+  os.exit()
+end
