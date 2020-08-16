@@ -1,4 +1,5 @@
 build
+temp
 *.zip
 tmp*
 test.*

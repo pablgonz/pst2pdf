@@ -1,6 +1,6 @@
 # pst2pdf &ndash; Running a PSTricks document with (pdf/xe/lua)latex
 
-Release 0.19 2020/08/10
+Release 0.19 2020/08/16
 
 ## Description
 

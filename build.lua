@@ -5,7 +5,7 @@
 -- Identification
 module     = "pst2pdf"
 pkgversion = "0.19"
-pkgdate    = "2020/08/10"
+pkgdate    = "2020/08/16"
 ctanpkg    = module
 ctanzip    = ctanpkg.."-"..pkgversion
 
@@ -155,24 +155,24 @@ if options["target"] == "testpkg" then
     error("** Error!!: Can't copy test files from ./doc to /"..tmpdir)
   end
   -- Run a first test
-  print("** Running: perl "..pst2pdf.." --noprew test1.tex")
-  errorlevel = run(tmpdir, "perl "..pst2pdf.." --noprew test1.tex")
+  print("** Running: perl "..pst2pdf.." --noprew --log test1.tex")
+  errorlevel = run(tmpdir, "perl "..pst2pdf.." --noprew --log test1.tex")
   if errorlevel ~= 0 then
-    error("** Error!!: perl "..pst2pdf.." --noprew test1.tex")
+    error("** Error!!: perl "..pst2pdf.." --noprew --log test1.tex")
     return errorlevel
   end
   -- Run a second test
-  print("** Running: perl "..pst2pdf.." --luatex --noprew test2.tex")
-  errorlevel = run(tmpdir, "perl "..pst2pdf.." --luatex --noprew test2.tex")
+  print("** Running: perl "..pst2pdf.." --luatex --noprew --log test2.tex")
+  errorlevel = run(tmpdir, "perl "..pst2pdf.." --luatex --noprew --log test2.tex")
   if errorlevel ~= 0 then
-    error("** Error!!: perl "..pst2pdf.." --luatex --noprew test2.tex")
+    error("** Error!!: perl "..pst2pdf.." --luatex --noprew --log test2.tex")
     return errorlevel
   end
   -- Run a third test
-  print("** Running: perl "..pst2pdf.." --xetex test3.tex")
-  errorlevel = run(tmpdir, "perl "..pst2pdf.." --xetex test3.tex")
+  print("** Running: perl "..pst2pdf.." --xetex --log test3.tex")
+  errorlevel = run(tmpdir, "perl "..pst2pdf.." --xetex --log test3.tex")
   if errorlevel ~= 0 then
-    error("** Error!!: perl "..pst2pdf.." --xetex test3.tex")
+    error("** Error!!: perl "..pst2pdf.." --xetex --log test3.tex")
     return errorlevel
   end
   -- Update pdf samples

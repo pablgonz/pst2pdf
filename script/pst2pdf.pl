@@ -1734,11 +1734,13 @@ opendir (my $DIR, $workdir);
                 RUNOSCMD("ps2pdf -sPDFSETTINGS=prepress -sAutoRotatePages=None", "$+{name}-$tmp.ps  $+{name}-$tmp.pdf",'show');
             }
             # Moving and renaming temp files with source code
-            Log("Move $+{name}$+{type} file with all source for environments to $imgdirpath");
             Infoline("Moving and renaming $+{name}$+{type} to $+{name}-all$ext");
             if (-e "$imgdir/$+{name}-all$ext") {
                 Infocolor('Warning', "The file [$+{name}-all$ext] already exists and will be rewritten");
                 Log("Rewriting the file $+{name}-all$ext in $imgdirpath");
+            }
+            else {
+                Log("Writing the file $+{name}-all$ext in $imgdirpath");
             }
             if ($verbose){
                 Infocolor('Running', "mv $workdir/$+{name}$+{type} $imgdirpath/$+{name}-all$ext");
