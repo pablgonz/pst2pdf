@@ -190,3 +190,9 @@ if options["target"] == "testpkg" then
   lfs.rmdir(tmpdir)
   os.exit()
 end
+
+-- Clean files
+cleanfiles = {
+  ctanzip..".curlopt",
+  ctanzip..".zip",
+}
