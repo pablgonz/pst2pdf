@@ -1518,14 +1518,14 @@ if (!$nosource) {
         Log('Extract source code of all captured environments with preamble');
         if ($STDenv) {
             if (-e "$imgdir/$name-fig-1$ext") {
-                Log("Recreating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
-                print "Recreating $envNo $fileSTD ", color('magenta'), "[$ext]",
-                color('reset'), " with source code for $envSTD\r\n";
+                Log("Recreating $envNo standalone $fileSTD [$ext] for $envSTD in $imgdirpath");
+                print "Recreating $envNo standalone $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " for $envSTD\r\n";
             }
             else {
-                Log("Creating $envNo $fileSTD [$ext] with source code for $envSTD in $imgdirpath");
-                print "Creating $envNo $fileSTD ", color('magenta'), "[$ext]",
-                color('reset'), " with source code for $envSTD\r\n";
+                Log("Creating $envNo standalone $fileSTD [$ext] for $envSTD in $imgdirpath");
+                print "Creating $envNo standalone $fileSTD ", color('magenta'), "[$ext]",
+                color('reset'), " for $envSTD\r\n";
             }
             # Write files
             while ($tmpbodydoc =~ m/$BP(?:\s*)?(?<env_src>.+?)(?:\s*)?$EP/gms) {
@@ -1537,14 +1537,14 @@ if (!$nosource) {
         }
         if ($PSTexa) {
             if (-e "$imgdir/$name-fig-exa-1$ext") {
-                Log("Recreating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
-                print "Recreating $exaNo $fileEXA ", color('magenta'), "[$ext]",
-                color('reset'), " with source code for $envEXA\r\n";
+                Log("Recreating $exaNo standalone $fileEXA [$ext] for $envEXA in $imgdirpath");
+                print "Recreating $exaNo standalone $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " for $envEXA\r\n";
             }
             else {
-                Log("Creating $exaNo $fileEXA [$ext] with source code for $envEXA in $imgdirpath");
-                print "Creating $exaNo $fileEXA ", color('magenta'), "[$ext]",
-                color('reset'), " with source code for $envEXA\r\n";
+                Log("Creating $exaNo standalone $fileEXA [$ext] for $envEXA in $imgdirpath");
+                print "Creating $exaNo standalone $fileEXA ", color('magenta'), "[$ext]",
+                color('reset'), " for $envEXA\r\n";
             }
             # Write files
             while ($tmpbodydoc =~ m/$BE\[.+?(?<pst_exa_name>$imgdir\/.+?-\d+)\}\]\s*(?<exa_src>.+?)\s*$EE/gms) {
@@ -1738,10 +1738,10 @@ opendir (my $DIR, $workdir);
             Infoline("Moving and renaming $+{name}$+{type} to $+{name}-all$ext");
             if (-e "$imgdir/$+{name}-all$ext") {
                 Infocolor('Warning', "The file [$+{name}-all$ext] already exists and will be rewritten");
-                Log("Rewriting the file $+{name}-all$ext in $imgdirpath");
+                Log("Rewriting the file $+{name}-all$ext with all source for environments in $imgdirpath");
             }
             else {
-                Log("Writing the file $+{name}-all$ext in $imgdirpath");
+                Log("Writing the file $+{name}-all$ext with all source for environments in $imgdirpath");
             }
             if ($verbose){
                 Infocolor('Running', "mv $workdir/$+{name}$+{type} $imgdirpath/$+{name}-all$ext");

@@ -179,7 +179,7 @@ function typeset(file)
   return 0
 end
 
--- Create make_temp_dir() function
+-- Create make_tmp_dir() function
 local function make_tmp_dir()
   -- Fix basename(path) in windows
   local function basename(path)
@@ -193,6 +193,7 @@ local function make_tmp_dir()
     error("** Error!!: The ./"..tmpdir.." directory could not be created")
     return errorlevel
   end
+  return 0
 end
 
 -- Add "testpkg" target to l3build CLI
