@@ -253,7 +253,7 @@ ${copyright}
 END_VERSION
 
 ### Standart info in terminal
-my $title = "$scriptname $nv [$date]: Running a PSTricks document with (pdf/xe/lua)latex\n";
+my $title = "$scriptname $nv [$date] - Running a PSTricks document with pdflatex (HV \& PG)\n";
 
 ### Usage of script
 sub usage {

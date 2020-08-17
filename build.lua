@@ -10,11 +10,11 @@ ctanpkg = module
 ctanzip = ctanpkg.."-"..scriptv
 
 -- Configuration of files for build and installation
-maindir       = "."
-textfiledir   = "."
-textfiles     = {"Changes","README.md"}
-docfiledir    = "./doc"
-docfiles      = {
+maindir     = "."
+textfiledir = "."
+textfiles   = {"Changes","README.md"}
+docfiledir  = "./doc"
+docfiles    = {
   "pst2pdf-doc.tex",
   "test1-pdf.pdf",
   "test2-pdf.pdf",
@@ -30,7 +30,6 @@ sourcefiledir = "./script"
 sourcefiles   = {"pst2pdf-doc.tex","Changes","pst2pdf.pl"}
 installfiles  = {"*.*"}
 scriptfiles   = {"*.pl"}
-
 tdslocations  = {
   "doc/support/pst2pdf/pst2pdf-doc.pdf",
   "doc/support/pst2pdf/pst2pdf-doc.tex",
@@ -86,6 +85,56 @@ function update_tag(file, content, tagname, tagdate)
   return content
 end
 
+-- Create check_marked_tags() function
+local function check_marked_tags()
+  local f = assert(io.open("doc/pst2pdf-doc.tex", "r"))
+  marked_tags = f:read("*all")
+  f:close()
+  local m_docv = string.match(marked_tags, "\\def\\fileversion{(.-)}")
+  local m_docd = string.match(marked_tags, "\\def\\filedate{(.-)}")
+
+  if scriptv == m_docv and scriptd == m_docd then
+    print("** Checking version and date in pst2pdf-doc.tex: OK")
+  else
+    print("** Warning: pst2pdf-doc.tex is marked with version "..m_docv.." and date "..m_docd)
+    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
+    print("** Check version and date in build.lua then run l3build tag")
+  end
+end
+
+-- Create check_script_tags() function
+local function check_script_tags()
+  local scriptv = "v"..scriptv
+  local scriptd = string.gsub(scriptd, "/", "-")
+
+  local f = assert(io.open("script/pst2pdf.pl", "r"))
+  script_tags = f:read("*all")
+  f:close()
+  local m_scriptd = string.match(script_tags, "my %$date %s* = '(.-)';")
+  local m_scriptv = string.match(script_tags, "my %$nv %s* = '(.-)';")
+
+  if scriptv == m_scriptv and scriptd == m_scriptd then
+    print("** Checking version and date in pst2pdf.pl: OK")
+  else
+    print("** Warning: pst2pdf.pl is marked with version "..m_scriptv.." and date "..m_scriptd)
+    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
+    print("** Check version and date in build.lua then run l3build tag")
+  end
+end
+
+-- Config tag_hook
+function tag_hook(tagname)
+  check_marked_tags()
+  check_script_tags()
+end
+
+-- Add "tagged" target to l3build CLI
+if options["target"] == "tagged" then
+  check_marked_tags()
+  check_script_tags()
+  os.exit()
+end
+
 -- Generating documentation
 typesetfiles  = {"pst2pdf-doc.tex"}
 biberopts     = "-q"
@@ -130,19 +179,19 @@ function typeset(file)
   return 0
 end
 
--- make_tmp_dir() function
-function make_tmp_dir()
-  tmpdir = "temp"
-  if direxists(tmpdir) then
-    print("** Remove files in temporary directory ./"..tmpdir)
-    cleandir(tmpdir)
-  else
-    print("** Creating the temporary directory ./"..tmpdir)
-    errorlevel = mkdir(tmpdir)
-    if errorlevel ~= 0 then
-      error("** Error!!: The ./"..tmpdir.." directory could not be created")
-      return errorlevel
-    end
+-- Create make_temp_dir() function
+local function make_tmp_dir()
+  -- Fix basename(path) in windows
+  local function basename(path)
+    return path:match("^.*[\\/]([^/\\]*)$")
+  end
+  local tmpname = os.tmpname()
+  tmpdir = basename(tmpname)
+  print("** Creating the temporary directory ./"..tmpdir)
+  errorlevel = mkdir(tmpdir)
+  if errorlevel ~= 0 then
+    error("** Error!!: The ./"..tmpdir.." directory could not be created")
+    return errorlevel
   end
 end
 
@@ -192,11 +241,11 @@ if options["target"] == "testpkg" then
     error("** Error!!: perl "..pst2pdf.." --xetex --log test3.tex")
     return errorlevel
   end
-  -- Update pdf samples
-  print("** Updating pdf test files in ./doc")
+  -- Update .pdf samples in ./doc
+  print("** Updating pdf sample files in ./doc")
   errorlevel = cp("*.pdf", tmpdir, "./doc")
   if errorlevel ~= 0 then
-    error("** Error!!: Can't updating pdf test files in ./doc")
+    error("** Error!!: Can't updating pdf sample files in ./doc")
   end
   -- If are OK then remove ./temp dir
   print("** Remove temporary directory ./"..tmpdir)
@@ -204,55 +253,5 @@ if options["target"] == "testpkg" then
   cleandir(tmpdir)
   lfs.rmdir(tmpdir.."/images")
   lfs.rmdir(tmpdir)
-  os.exit()
-end
-
--- Create check_marked_tags() function
-local function check_marked_tags()
-  local f = assert(io.open("doc/pst2pdf-doc.tex", "r"))
-  marked_tags = f:read("*all")
-  f:close()
-  local m_docv = string.match(marked_tags, "\\def\\fileversion{(.-)}")
-  local m_docd = string.match(marked_tags, "\\def\\filedate{(.-)}")
-
-  if scriptv == m_docv and scriptd == m_docd then
-    print("** Checking version and date in pst2pdf-doc.tex: OK")
-  else
-    print("** Warning: pst2pdf-doc.tex is marked with version "..m_docv.." and date "..m_docd)
-    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
-    print("** Check version and date in build.lua then run l3build tag")
-  end
-end
-
--- Create check_script_tags() function
-local function check_script_tags()
-  local scriptv = "v"..scriptv
-  local scriptd = string.gsub(scriptd, "/", "-")
-
-  local f = assert(io.open("script/pst2pdf.pl", "r"))
-  script_tags = f:read("*all")
-  f:close()
-  local m_scriptd = string.match(script_tags, "my %$date %s* = '(.-)';")
-  local m_scriptv = string.match(script_tags, "my %$nv %s* = '(.-)';")
-
-  if scriptv == m_scriptv and scriptd == m_scriptd then
-    print("** Checking version and date in pst2pdf.pl: OK")
-  else
-    print("** Warning: pst2pdf.pl is marked with version "..m_scriptv.." and date "..m_scriptd)
-    print("** Warning: build.lua is marked with version "..scriptv.." and date "..scriptd)
-    print("** Check version and date in build.lua then run l3build tag")
-  end
-end
-
--- Config tag_hook
-function tag_hook(tagname)
-  check_marked_tags()
-  check_script_tags()
-end
-
--- Add "tagged" target to l3build CLI
-if options["target"] == "tagged" then
-  check_marked_tags()
-  check_script_tags()
   os.exit()
 end
