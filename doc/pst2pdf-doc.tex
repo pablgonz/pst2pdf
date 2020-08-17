@@ -44,7 +44,7 @@
 % Config hyperref
 \hypersetup{
   linktoc            = all,
-  pdftitle           = {.:: pst2pdf v\fileversion{} [\filedate] --- Running a PSTricks document with pdflatex ::.},%
+  pdftitle           = {.:: pst2pdf v\fileversion{} [\filedate] --- Running a PSTricks document with (pdf/xe/lua)latex ::.},%
   pdfauthor          = {Herbert Vo\ss, Pablo Gonz\'{a}lez Luengo},%
   pdfsubject         = {Documentation for version \fileversion},%
   pdfkeywords        = {extract, conversion, images, pstricks, standalone files},
@@ -420,18 +420,20 @@
 \begin{document}
 
 \title{\texttt{pst2pdf}}
-\subtitle{Running a PSTricks document with pdflatex;\\  \small v\fileversion}
-\author{Herbert Voß  \\ Pablo Gonz\'{a}lez Luengo}
-\docauthor{}
-\date{\filedate}
+\subtitle{Running a PSTricks document with (pdf/xe/lua)latex;\\  v\fileversion{} --- \filedate\thanks{%
+    This file describes a documentation for version \fileversion, last revised \filedate.}}
+\author{Herbert Voß \\ Pablo Gonz\'{a}lez L}
+\date{}
 
 \maketitle
 
 \begin{abstract}
-    \texttt{pst2pdf} run a \TeX{} source, read all \texttt{postscript}, \texttt{pspicture}, \texttt{psgraph}
-    and \texttt{PSTexample} environments and convert in images \texttt{pdf,eps,jpg,svg}
-    or \texttt{png} format (default \texttt{pdf}), extract source code in standalone files and create new
-    file with all environments converted to \Lcs{includegraphics} and runs \texttt{(pdf/Xe/lua)latex}.
+
+\texttt{pst2pdf} is a \texttt{Perl} \emph{script} which isolates all \texttt{PostScript} or \texttt{PSTricks} related
+parts of the \TeX{} document, read all \texttt{postscript}, \texttt{pspicture}, \texttt{psgraph}
+and \texttt{PSTexample} environments and, extract source code in \emph{standalone} files and
+converting them into image format \texttt{pdf, eps, jpg, svg} or \texttt{png} (default \texttt{pdf}).
+Create new file with all extracted environments converted to \Lcs{includegraphics} and runs \texttt{(pdf/Xe/lua)latex}.
 \end{abstract}
 
 \tableofcontents
@@ -451,7 +453,7 @@ Instead of running \Lprog{pdflatex} one can use the \emph{script} \Lscript{pst2p
 all \PST\ related code into single documents with the same preamble as the original
 main document.
 
-The \Lscript{pst2pdf} \emph{script} runs document, clips all whitespace around the
+The \Lscript{pst2pdf} \emph{script} runs document, extract source code for all \PST\ as \PS\ related parts, clips all whitespace around the
 image and creates a \Lext{pdf} images of the \PST\ related code.
 
 In a last run which is the \Lprog{pdflatex} the \PST\ code in the

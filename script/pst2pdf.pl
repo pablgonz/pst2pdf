@@ -5,7 +5,7 @@ use v5.26;
 # $Id: pst2pdf.pl 119 2014-09-24 12:04:09Z herbert $                   #
 # v0.19  2020-08-16 simplify the use of PSTricks with pdf              #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
-#     Pablo González Luengo <pablgonz@yahoo.com>                       #
+#     Pablo González L <pablgonz@yahoo.com>                            #
 #                                                                      #
 # This program is free software; you can redistribute it and/or modify #
 # it under the terms of the GNU General Public License as published by #
@@ -244,7 +244,7 @@ sub RUNOSCMD {
 
 ### General information
 my $copyright = <<"END_COPYRIGHT" ;
-[$date] (c) Herbert Voss <hvoss\@tug.org> and Pablo González.
+[$date] (c) Herbert Voss <hvoss\@tug.org> and Pablo González L <pablgonz\@yahoo.com>.
 END_COPYRIGHT
 
 my $versiontxt= <<"END_VERSION" ;
@@ -261,10 +261,11 @@ find_ghostscript();
 
 my $usage = <<"END_OF_USAGE";
 ${title}
-    pst2pdf run a TeX source, read all postscript, pspicture, psgraph
-    and PSTexample environments and convert in image format (default pdf),
-    extract source code in standalone files and create new file with all
-    environments converted to \\includegraphics and runs (pdf/Xe/lua)latex.
+   pst2pdf is a Perl script which isolates all PostScript or PSTricks related
+   parts of the TeX document, read all postscript, pspicture, psgraph and
+   PSTexample environments, extract source code in standalone files and
+   converting them into image format. Create new file with all extracted
+   environments converted to \\includegraphics and runs (pdf/xe/lua)latex.
 
 Usage: $scriptname [<options>] <texfile>[.tex|.ltx]
        $scriptname <texfile>[.tex|.ltx] [options]
@@ -272,7 +273,7 @@ Usage: $scriptname [<options>] <texfile>[.tex|.ltx]
    If used without [<options>] the extracted environments are saved in
    standalone files and converted to pdf image format in the "./images"
    directory using "latex>dvips>ps2pdf" and "preview" package to process
-   <input file> and "pdflatex" for compiler <output file>.
+   <texfile> and "pdflatex" for compiler <texfile-pdf>.
 
 Options:
                                                                  [default]
@@ -328,7 +329,6 @@ Example:
 * latex>dvips>ps2pdf and preview package for <test.tex> and pdflatex
 * for <test-pdf.tex>.
 
-Suport bundling for short options $scriptname -ep --imgdir pics test.tex
 See texdoc pst2pdf for full documentation.
 END_OF_USAGE
 print $usage;
