@@ -10,32 +10,6 @@ PSTexample environments, extract source code in standalone files and
 converting them into image format. Create new file with all extracted environments
 converted to `\includegraphics` and runs (pdf/xe/lua)latex.
 
-## Installation
-
-The script `pst2pdf` is present in `TeXLive` and `MiKTeX`, use the
-package manager to install.
-
-For manual installation, download [pst2pdf.zip](http://mirrors.ctan.org/graphics/pstricks/scripts/pst2pdf.zip) and unzip it
-and move all files to appropriate locations:
-
-```
-  pst2pdf-doc.pdf    -> TDS:doc/support/pst2pdf/pst2pdf-doc.pdf
-  pst2pdf-doc.tex    -> TDS:doc/support/pst2pdf/pst2pdf-doc.tex
-  pst2pdf-doc.bib    -> TDS:doc/support/pst2pdf/pst2pdf-doc.bib
-  test1.tex          -> TDS:doc/support/pst2pdf/test1.tex
-  test2.tex          -> TDS:doc/support/pst2pdf/test2.tex
-  test3.tex          -> TDS:doc/support/pst2pdf/test3.tex
-  test1-pdf.tex      -> TDS:doc/support/pst2pdf/test1-pdf.pdf
-  test2-pdf.tex      -> TDS:doc/support/pst2pdf/test2-pdf.pdf
-  test3-pdf.tex      -> TDS:doc/support/pst2pdf/test3-pdf.pdf
-  tux.jpg            -> TDS:doc/support/pst2pdf/tux.jpg
-  README.md          -> TDS:doc/support/pst2pdf/README.md
-  Changes            -> TDS:doc/support/pst2pdf/Changes
-  pst2pdf.pl         -> TDS:scripts/pst2pdf/pst2pdf.pl
-```
-
-To reproduce the documentation run `xelatex pst2pdf-doc.tex`.
-
 ## Usage
 
 ```
@@ -75,6 +49,29 @@ The `postscript` environment should be used for all other PostScript related
 commands, which are not part of a `pspicture` environment, e.g. nodes inside
 normal text or `\psset{...}` outside of environment.
 
+## Installation
+
+The script `pst2pdf` is present in `TeXLive` and `MiKTeX`, use the package manager to install.
+
+For manual installation, download [pst2pdf.zip](http://mirrors.ctan.org/graphics/pstricks/scripts/pst2pdf.zip) and unzip it
+and move all files to appropriate locations:
+
+```
+  pst2pdf-doc.pdf    -> TDS:doc/support/pst2pdf/pst2pdf-doc.pdf
+  pst2pdf-doc.tex    -> TDS:doc/support/pst2pdf/pst2pdf-doc.tex
+  pst2pdf-doc.bib    -> TDS:doc/support/pst2pdf/pst2pdf-doc.bib
+  test1.tex          -> TDS:doc/support/pst2pdf/test1.tex
+  test2.tex          -> TDS:doc/support/pst2pdf/test2.tex
+  test3.tex          -> TDS:doc/support/pst2pdf/test3.tex
+  test1-pdf.tex      -> TDS:doc/support/pst2pdf/test1-pdf.pdf
+  test2-pdf.tex      -> TDS:doc/support/pst2pdf/test2-pdf.pdf
+  test3-pdf.tex      -> TDS:doc/support/pst2pdf/test3-pdf.pdf
+  tux.jpg            -> TDS:doc/support/pst2pdf/tux.jpg
+  README.md          -> TDS:doc/support/pst2pdf/README.md
+  Changes            -> TDS:doc/support/pst2pdf/Changes
+  pst2pdf.pl         -> TDS:scripts/pst2pdf/pst2pdf.pl
+```
+
 ## Documentation
 
 For more documentation use:
@@ -88,6 +85,8 @@ or
 ```
 $ texdoc pst2pdf
 ```
+
+To reproduce the documentation run `xelatex pst2pdf-doc.tex`.
 
 ## Copyright
 
