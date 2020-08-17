@@ -82,7 +82,7 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 ### Script identification
 my $scriptname = 'pst2pdf';
 my $nv         = 'v0.19';
-my $date       = '2020-08-19';
+my $date       = '2020-08-17';
 my $ident      = '$Id: pst2pdf.pl 119 2020-08-16 12:04:09Z herbert $';
 
 ### Log vars
@@ -253,7 +253,7 @@ ${copyright}
 END_VERSION
 
 ### Standart info in terminal
-my $title = "$scriptname $nv [$date] - Running a PSTricks document with pdflatex (HV \& PG)\n";
+my $title = "$scriptname $nv - Running a PSTricks document with (pdf/xe/lua)latex [HV \& PG]\n";
 
 ### Usage of script
 sub usage {

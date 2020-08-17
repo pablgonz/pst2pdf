@@ -39,13 +39,13 @@
 % Identification
 \def\myscript{pst2pdf}
 \def\fileversion{0.19}
-\def\filedate{2020/08/19}
+\def\filedate{2020/08/17}
 
 % Config hyperref
 \hypersetup{
   linktoc            = all,
-  pdftitle           = {.:: pst2pdf v\fileversion{0.19} [\filedate] --- Running a PSTricks document with pdflatex ::.},%
-  pdfauthor          = {Pablo Gonz\'{a}lez Luengo},%
+  pdftitle           = {.:: pst2pdf v\fileversion{} [\filedate] --- Running a PSTricks document with pdflatex ::.},%
+  pdfauthor          = {Herbert Vo\ss, Pablo Gonz\'{a}lez Luengo},%
   pdfsubject         = {Documentation for version \fileversion},%
   pdfkeywords        = {extract, conversion, images, pstricks, standalone files},
   pdfstartview       = {FitH},%
@@ -853,8 +853,11 @@ In the fourth step, the script generating the file \LFile{test-fig-1981.pdf} wit
 \end{examplecmd}
 
 Now move \LFile{test-fig-1981.pdf} to \texttt{/tmp/hG45uVklv9} and rename to \LFile{test-fig-all.pdf}, generate image files \LFile{test-fig-1.pdf}
-and \LFile{test-fig-2.pdf} and copy to \texttt{./images}. The file \LFile{test-fig-1981.tex} is
+and \LFile{test-fig-2.pdf} and copy to \texttt{./images}, if the image files exist, they will be rewritten each time you run the script. The file \LFile{test-fig-1981.tex} is
 moved to the \texttt{./images} and rename to \LFile{test-fig-all.tex}.
+
+
+
 
 Note the options passed to \meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} always use \prgopt*{no-shell-escape}
 and \prgopt*{recorder}, to generate the \Lext{fls} file which is used to delete temporary files and directories after
@@ -1018,8 +1021,6 @@ The image format generated using \Lprog{Ghostscript}. The line executed by the s
 [user@machine ~:]§ gs -q -dNOSAFER -sDEVICE=bmp32b -r150
 \end{examplecmd}
 
-If the image files exist, they will be rewritten each time you run the script.
-
 \section{How to use}
 
 \subsection{Syntax}
@@ -1132,7 +1133,7 @@ Create separate files with \emph{\enquote{only code}} for all extracted
 environments.
 
 \DescribeCmd{shell}{bolean}{off}
-Enable \Lcs{write18}\{SHELL COMMAND\}.
+Enable \Lcs{write18}\meta{shell command}.
 
 \DescribeCmd[ni]{norun}{bolean}{off}
 Execute the script, but do not create image files. This option is designed to

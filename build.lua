@@ -5,7 +5,7 @@
 -- Identification
 module  = "pst2pdf"
 scriptv = "0.19"
-scriptd = "2020/08/19"
+scriptd = "2020/08/17"
 ctanpkg = module
 ctanzip = ctanpkg.."-"..scriptv
 
@@ -61,16 +61,16 @@ tagfiles = {"pst2pdf-doc.tex", "README.md","pst2pdf.pl"}
 function update_tag(file, content, tagname, tagdate)
   if string.match(file, "%.tex$") then
     content = string.gsub(content,
-                          "\\fileversion{.-}",
-                          "\\fileversion{"..scriptv.."}")
+                          "\\def\\fileversion{.-}",
+                          "\\def\\fileversion{"..scriptv.."}")
     content = string.gsub(content,
-                          "\\filedate{.-}",
-                          "\\filedate{"..scriptd.."}")
+                          "\\def\\filedate{.-}",
+                          "\\def\\filedate{"..scriptd.."}")
   end
   if string.match(file, "README.md$") then
     content = string.gsub(content,
-                          "Release %d+.%d+%a* %d%d%d%d%/%d%d%/%d%d",
-                          "Release "..scriptv.." "..scriptd)
+                          "Release v%d+.%d+%a* \\%[%d%d%d%d%/%d%d%/%d%d\\%]",
+                          "Release v"..scriptv.." \\["..scriptd.."\\]")
   end
   if string.match(file, "pst2pdf.pl$") then
     local scriptd = string.gsub(scriptd, "/", "-")
