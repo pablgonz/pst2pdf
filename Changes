@@ -1,5 +1,5 @@
 pst2pdf.pl --------
-0.19  2020-08-08  - Add new options
+0.19  2020-08-08  - Add new options to CLI
                   - Remove deprecate code
                   - Rewrite documentation
                   - Remove unused options

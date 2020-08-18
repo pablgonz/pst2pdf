@@ -1,14 +1,14 @@
 # pst2pdf &ndash; Running a PSTricks document with pdflatex
 
-Release v0.19 \[2020/08/17\]
+Release v0.19 \[2020-08-17\]
 
 ## Description
 
 `pst2pdf` is a Perl _script_ which isolates all `PostScript` or `PSTricks` related
-parts of the TeX document, read all postscript, pspicture, psgraph and
-PSTexample environments, extract source code in standalone files and
-converting them into image format. Create new file with all extracted environments
-converted to `\includegraphics` and runs (pdf/xe/lua)latex.
+parts of the TeX document, read all `postscript`, `pspicture`, `psgraph` and `PSTexample`
+environments, extract source code in standalone files and converting them into image
+format \(default `pdf`\). Create new file with all extracted environments converted to `\includegraphics`
+and runs \(pdf/xe/lua\)latex.
 
 ## Usage
 
@@ -22,18 +22,18 @@ or
 pst2pdf.pl <texfile>[.tex|.ltx] [<options>]
 ```
 
-Relative or absolute `paths` for directories and files is not supported. Options that accept a _value_ require either a blank
-space or `=` between the option and the _value_. Some short options can be bundling.
+Relative or absolute `paths` for directories and files is not supported. Options that accept
+a _value_ require either a blank space or `=` between the option and the _value_. Some short
+options can be bundling.
 
 If used without `[<options>]` the extracted environments are converted to `pdf` image format
-and saved in the `./images` directory using `latex>dvips>ps2pdf` and `preview` package to process `<texfile>`.
-and `pdflatex` to process `<texfile-pdf>`.
+and saved in the `./images` directory using `latex>dvips>ps2pdf` and `preview` package to
+process `<texfile>` and `pdflatex` to process the output file `<texfile-pdf>`.
 
 ## Restrictions
 
-The `pspicture` environment can be nested, the `postscript` one **NOT!**
-`pspicture` can be inside of a `postscript` environment, but
-not vice versa.
+The `pspicture` environment can be nested, the `postscript` one **NOT!** `pspicture` can be
+inside of a `postscript` environment, but not vice versa.
 
 ```latex
 \begin{postscript}
@@ -45,9 +45,9 @@ not vice versa.
 \end{postscript}
 ```
 
-The `postscript` environment should be used for all other PostScript related
-commands, which are not part of a `pspicture` environment, e.g. nodes inside
-normal text or `\psset{...}` outside of environment.
+The `postscript` environment should be used for all other PostScript related commands, which
+are not part of a `pspicture` environment, e.g. nodes inside normal text or `\psset{...}`
+outside of environment.
 
 ## Installation
 
