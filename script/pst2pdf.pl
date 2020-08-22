@@ -79,8 +79,8 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 
 ### Script identification
 my $scriptname = 'pst2pdf';
-my $nv         = 'v0.19';
-my $date       = '2020-08-17';
+my $nv         = 'v0.20';
+my $date       = '2020-08-22';
 my $ident      = '$Id: pst2pdf.pl 119 2020-08-22 12:04:09Z herbert $';
 
 ### Log vars
@@ -1914,6 +1914,46 @@ $preamble =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
 $preamble =~ s/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|
                ^(?:[\t ]*(?:\r?\n|\r))?+//gmsx;
 
+### To be sure that the package graphicx and \graphicspath is in the main
+### document and not in a verbatim write environment we make the changes
+my %tmpreplace = (
+    'graphicx'     => 'TMPGRAPHICXTMP',
+    'graphicspath' => 'TMPGRAPHICSPATHTMP',
+);
+my $findtmp     = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %tmpreplace;
+
+### We go line by line and make the changes [need /p for ${^MATCH}]
+while ($preamble =~ /\%<\*$dtxverb>(.+?)\%<\/$dtxverb> | $tmpcomment /pgmsx) {
+    my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
+    my $encontrado = ${^MATCH};
+    $encontrado =~ s/($findtmp)/$tmpreplace{$1}/g;
+    substr $preamble, $pos_inicial, $pos_final-$pos_inicial, $encontrado;
+    pos ($preamble) = $pos_inicial + length $encontrado;
+}
+
+### Now we're trying to capture \graphicspath{...}
+my $graphicspath= qr/\\ graphicspath \{ ((?: $llaves )+) \}/ix;
+my @graphicspath;
+@graphicspath = $preamble =~ m/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|($graphicspath)/gmsx;
+
+if (@graphicspath) {
+    Log("Found \\graphicspath in preamble for $name-pdf$ext");
+    $findgraphicx = 'false';
+    while ($preamble =~ /$graphicspath /pgmx) {
+        my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
+        my $encontrado = ${^MATCH};
+        if ($encontrado =~ /$graphicspath/) {
+            my  $argumento = $1;
+            if ($argumento !~ /\{$imgdir\/\}/) {
+                $argumento .= "\{$imgdir/\}";
+                my  $cambio = "\\graphicspath{$argumento}";
+                substr $preamble, $pos_inicial, $pos_final-$pos_inicial, $cambio;
+                pos($preamble) = $pos_inicial + length $cambio;
+            }
+        }
+    }
+}
+
 ### Possible packages that load graphicx
 my @pkgcandidates = qw (
     rotating epsfig lyluatex xunicode parsa xepersian-hm gregoriotex teixmlslides
@@ -1944,28 +1984,7 @@ my $pkgcandidates = join q{|}, map { quotemeta } sort { length $a <=> length $b 
 $pkgcandidates = qr/$pkgcandidates/x;
 my @graphicxpkg;
 
-### \graphicspath
-my $graphicspath= qr/\\ graphicspath \{ ((?: $llaves )+) \}/ix;
-my @graphicspath;
-
-### To be sure that the package is in the main document and not in a
-### verbatim write environment we make the changes using a hash
-my %tmpreplace = (
-    'graphicx'     => 'TMPGRAPHICXTMP',
-    'graphicspath' => 'TMPGRAPHICSPATHTMP',
-);
-my $findtmp     = join q{|}, map { quotemeta } sort { length $a <=> length $b } keys %tmpreplace;
-
-### We go line by line and make the changes [need /p for ${^MATCH}]
-while ($preamble =~ /\%<\*$dtxverb>(.+?)\%<\/$dtxverb> | $tmpcomment /pgmsx) {
-    my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
-    my $encontrado = ${^MATCH};
-    $encontrado =~ s/($findtmp)/$tmpreplace{$1}/g;
-    substr $preamble, $pos_inicial, $pos_final-$pos_inicial, $encontrado;
-    pos ($preamble) = $pos_inicial + length $encontrado;
-}
-
-### Now we're trying to capture
+### Now we're trying to capture graphicx package
 @graphicxpkg = $preamble =~ m/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|($pkgcandidates)/gmsx;
 
 if (@graphicxpkg and $findgraphicx ne 'false') {
@@ -1973,28 +1992,7 @@ if (@graphicxpkg and $findgraphicx ne 'false') {
     $findgraphicx = 'false';
 }
 
-### Search \graphicspath{...}
-@graphicspath = $preamble =~ m/\%<\*$dtxverb> .+?\%<\/$dtxverb>(*SKIP)(*F)|($graphicspath)/gmsx;
-
-if (@graphicspath) {
-    Log("Found \\graphicspath in preamble for $name-pdf$ext");
-    $findgraphicx = 'false';
-    while ($preamble =~ /$graphicspath /pgmx) {
-        my ($pos_inicial, $pos_final) = ($-[0], $+[0]);
-        my $encontrado = ${^MATCH};
-        if ($encontrado =~ /$graphicspath/) {
-            my  $argumento = $1;
-            if ($argumento !~ /\{$imgdir\/\}/) {
-                $argumento .= "\{$imgdir/\}";
-                my  $cambio = "\\graphicspath{$argumento}";
-                substr $preamble, $pos_inicial, $pos_final-$pos_inicial, $cambio;
-                pos($preamble) = $pos_inicial + length $cambio;
-            }
-        }
-    }
-}
-
-### Revert changes for preamble in <output file>
+### Revert changes in preamble for temp <output file>
 my %tmpoutreplace = (
     'TMPGRAPHICXTMP'     => 'graphicx',
     'TMPGRAPHICSPATHTMP' => 'graphicspath',
@@ -2010,7 +2008,7 @@ $arara_engines = qr/\b(?:$arara_engines)/x;
 my $arara_rule = qr /^(?:\%\s{1}arara[:]\s{1}) ($arara_engines) /msx;
 
 ### Capture graphicx.sty in .log of LaTeX file
-if ($findgraphicx eq 'true') {
+if ($findgraphicx ne 'false') {
     Log("Couldn't capture the graphicx package for $name-pdf$ext in preamble");
     my $ltxlog;
     my @graphicx;
@@ -2038,7 +2036,8 @@ if ($findgraphicx eq 'true') {
         }
         else {
             Log("Not detected engine for arara, use default [pdflatex]");
-            $compiler = 'pdflatex'; }
+            $compiler = 'pdflatex';
+        }
     }
     if ($compiler eq 'latex') { $compiler = 'pdflatex'; }
     if ($compiler eq 'dvilualatex') { $compiler = 'lualatex'; }
