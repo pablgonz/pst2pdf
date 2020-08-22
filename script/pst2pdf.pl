@@ -79,8 +79,8 @@ my %opts_cmd;           # hash to store options for Getopt::Long  and log
 
 ### Script identification
 my $scriptname = 'pst2pdf';
-my $nv         = 'v0.20';
-my $date       = '2020-08-22';
+my $nv         = 'v0.19';
+my $date       = '2020-08-17';
 my $ident      = '$Id: pst2pdf.pl 119 2020-08-22 12:04:09Z herbert $';
 
 ### Log vars
@@ -2061,7 +2061,7 @@ if ($findgraphicx eq 'true') {
     else {
         Log("Not found graphicx package in $name-fig-$tmp.log");
         Log("Add \\usepackage\{graphicx\} to preamble of $name-pdf$ext");
-        $preamble= "$preamble\\usepackage\{graphicx\}";
+        $preamble= "$preamble\\usepackage\{graphicx\}\n";
     }
 }
 
@@ -2069,13 +2069,13 @@ if ($findgraphicx eq 'true') {
 if (!@graphicspath) {
     Log("Not found \\graphicspath in preamble for $name-pdf$ext");
     Log("Add \\graphicspath\{\{$imgdir/\}\} to preamble for $name-pdf$ext");
-    $preamble= "$preamble\n\\graphicspath\{\{$imgdir/\}\}";
+    $preamble= "$preamble\\graphicspath\{\{$imgdir/\}\}\n";
 }
 
 Log("Add \\usepackage\{grfext\} to preamble for $name-pdf$ext");
-$preamble = "$preamble\n\\usepackage\{grfext\}";
+$preamble = "$preamble\\usepackage\{grfext\}\n";
 Log("Add \\PrependGraphicsExtensions\*\{\.pdf\} to preamble for $name-pdf$ext");
-$preamble = "$preamble\n\\PrependGraphicsExtensions\*\{\.pdf\}";
+$preamble = "$preamble\\PrependGraphicsExtensions\*\{\.pdf\}";
 $preamble =~ s/\%<\*$dtxverb>(.+?)\%<\/$dtxverb>/$1/gmsx;
 
 ### Create a <output file>
