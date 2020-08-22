@@ -1,5 +1,5 @@
 pst2pdf.pl --------
-0.20  2020-08-20  - Fix graphicx detection
+0.20  2020-08-22  - Fix graphicx detection
                   - Fix typo in documentation
                   - Remove unused vars
 0.19  2020-08-17  - Add new options to CLI

@@ -551,7 +551,8 @@ parts and then processing them:
 
 If for some reason you have an environment \Lenv{filecontens} before \lstinline|\documentclass| or
 in the preamble of the \meta{input file} that contains a \emph{sub-document} or \emph{environment}
-you want to extract, the script will ignore them.
+you want to extract, the script will ignore them. Similarly, the content after \lstinline|\end{document}|
+is ignored in the extraction process.
 
 \subsection{Verbatim contents}
 \label{sec:verbatim}
