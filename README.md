@@ -1,6 +1,6 @@
 # pst2pdf &ndash; Running a PSTricks document with pdflatex
 
-Release v0.19 \[2020-08-17\]
+Release v0.20 \[2020-08-22\]
 
 ## Description
 
