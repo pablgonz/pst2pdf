@@ -2,7 +2,7 @@
 use v5.26;
 
 ############################# LICENCE ##################################
-# v0.20  2020-08-22 simplify the use of PSTricks with pdf              #
+# v0.21 2020-09-19 simplify the use of PSTricks with pdf              #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
 #     Pablo González L <pablgonz@yahoo.com>                            #
 #                                                                      #
@@ -77,11 +77,21 @@ my $STDenv   = 0;       # run extract pspicture/psfrag environments
 my @currentopt;         # storing current options for log file
 my %opts_cmd;           # hash to store options for Getopt::Long  and log
 
-### Script identification
+### Script identification and copyright
 my $scriptname = 'pst2pdf';
-my $nv         = 'v0.20';
-my $date       = '2020-08-22';
-my $ident      = '$Id: pst2pdf.pl 119 2020-08-22 12:04:09Z herbert $';
+my $nv         = 'v0.21';
+my $date       = '2020-09-22';
+my $copyright = <<"END_COPYRIGHT";
+(c) Herbert Voss <hvoss\@tug.org> and Pablo González L <pablgonz\@yahoo.com>.
+END_COPYRIGHT
+my $versiontxt= <<"END_VERSION";
+${scriptname} - Running a PSTricks document with (pdf/xe/lua)latex
+Release ${nv} [$date]
+${copyright}
+END_VERSION
+
+### Standart info in terminal
+my $title = "$scriptname $nv - Running a PSTricks document with (pdf/xe/lua)latex [HV \& PG]\n";
 
 ### Log vars
 my $LogFile = "$scriptname.log";
@@ -240,20 +250,7 @@ sub RUNOSCMD {
     return;
 }
 
-### General information
-my $copyright = <<"END_COPYRIGHT" ;
-[$date] (c) Herbert Voss <hvoss\@tug.org> and Pablo González L <pablgonz\@yahoo.com>.
-END_COPYRIGHT
-
-my $versiontxt= <<"END_VERSION" ;
-${scriptname} ${nv} ${ident}
-${copyright}
-END_VERSION
-
-### Standart info in terminal
-my $title = "$scriptname $nv - Running a PSTricks document with (pdf/xe/lua)latex [HV \& PG]\n";
-
-### Usage of script
+### Usage of script, --help in terminal
 sub usage {
 find_ghostscript();
 
@@ -289,10 +286,10 @@ Options:
   -g, --gray         Gray scale for images using ghostscript     [off]
   -f, --force        Try to capture \\psset{...} to extract       [off]
   -x, --xetex        Using xelatex for compiler input and output [off]
-  -ns,--nosource     Do not create standalone files              [off]
+  -ns, --nosource    Do not create standalone files              [off]
   -np, --noprew, --single
                      Create images files without preview package [off]
-  -ni,--norun, --noimages
+  -ni, --norun, --noimages
                      Generate file-pdf.tex, but not images       [off]
   -d <integer>, --dpi <integer>
                      Dots per inch resolution for images         [150]
@@ -726,7 +723,7 @@ open my $inputfile, '<:crlf', "$name$ext";
         }
 close $inputfile;
 
-### Identification message in terminal
+### Print identification message in terminal
 print $title;
 
 ### Default environment to extract
@@ -1384,7 +1381,7 @@ my $opt_crop = $xetex ?  "--xetex  --margins $margins"
 my $opt_prew = $xetex ? 'xetex,' : q{};
 
 ### Set message in terminal
-my $msg_compiler = $xetex ?  'xelatex'
+my $msg_compiler = $xetex ?  'xelatex>xdvipdfmx'
                  : $luatex ? 'dvilualatex>dvips>ps2pdf'
                  :           'latex>dvips>ps2pdf'
                  ;
@@ -1400,7 +1397,9 @@ else {
 }
 
 ### Set options for compiler
-my $opt_compiler = "$write18 -interaction=nonstopmode -recorder";
+my $opt_compiler = $xetex ? "$write18 -interaction=nonstopmode -recorder -no-pdf"
+                 :          "$write18 -interaction=nonstopmode -recorder"
+                 ;
 
 if (!$norun) {
     Log("The options '$opt_compiler' will be passed to $compiler");
@@ -1723,8 +1722,12 @@ opendir (my $DIR, $workdir);
             Log("Compiling the file $+{name}$+{type} using [$msg_compiler]");
             print "Compiling the file $+{name}$+{type} using ", color('magenta'), "[$msg_compiler]\r\n",color('reset');
             # Compiling file
-            for (@compiler){
+            for (@compiler) {
                 RUNOSCMD("$compiler $opt_compiler","$+{name}$+{type}",'show');
+            }
+            # Using xdvipdfmx
+            if ($compiler eq 'xelatex') {
+                RUNOSCMD("xdvipdfmx $quiet -E", "-o $+{name}-$tmp.pdf $+{name}-$tmp.xdv",'show');
             }
             # Using dvips>ps2pdf
             if ($compiler eq 'latex' or $compiler eq 'dvilualatex') {
@@ -2131,7 +2134,7 @@ my $ltxmkopt = $xetex  ? "-pdfxe -silent -xelatex=\"xelatex $write18 -recorder %
              :           "-pdf -silent -pdflatex=\"pdflatex $write18 -recorder %O %S\""
              ;
 
-### Set options for compiler
+### Reset options for compiler
 $opt_compiler = $arara   ? '--log'
               : $latexmk ? "$ltxmkopt"
               :            "$write18 -interaction=nonstopmode -recorder"
@@ -2198,7 +2201,7 @@ if (-e "$name-pdf.fls") {
 }
 
 ### Read .fls file
-for my $filename(@flsfile){
+for my $filename(@flsfile) {
     open my $RECtmp, '<', $filename;
         push @tmpfiles, grep /^$flsline/,<$RECtmp>;
     close $RECtmp;

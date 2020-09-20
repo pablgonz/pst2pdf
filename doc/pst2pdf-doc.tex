@@ -38,8 +38,8 @@
 
 % Identification
 \def\myscript{pst2pdf}
-\def\fileversion{0.20}
-\def\filedate{2020-08-22}
+\def\fileversion{0.21}
+\def\filedate{2020-09-22}
 
 % Config hyperref
 \hypersetup{
@@ -884,7 +884,7 @@ Once the detection is complete, the package \LPack{grfext} and \Lcs{PrependGraph
 will be added at the end of the preamble, then proceed to run:
 
 \begin{examplecmd}
-[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -recorder -shell-escape test-pdf.tex
+[user@machine ~:]§ `\small\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler}` -recorder -no-shell-escape test-pdf.tex
 \end{examplecmd}
 generating the file \LFile{test-pdf.pdf}.
 
@@ -1212,7 +1212,7 @@ and generate \Lext{pdf} files runing:
 [user@machine~:]§for i in *.pdf; do pdfcrop `\small\oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` $i $i; done
 \end{examplecmd}
 
-\item Execute the script using \cmdopt{norun}, move to \texttt{./images} \Lext{pdf} file runing:
+\item Execute the script using \cmdopt{norun}, move to \texttt{./images} and generate \Lext{pdf} files runing:
 
 \begin{examplecmd}
 [user@machine~:]§`\meta[type=tt,cf=ForestGreen,ac=lightgray]{compiler} \oarg[type=tt,cf=gray,sbc=optcolor,ac=gray]{options}` test-fig-all.tex

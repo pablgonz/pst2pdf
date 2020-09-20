@@ -4,8 +4,8 @@
 
 -- Identification
 module  = "pst2pdf"
-scriptv = "0.20"
-scriptd = "2020-08-22"
+scriptv = "0.21"
+scriptd = "2020-09-22"
 ctanpkg = module
 ctanzip = ctanpkg.."-"..scriptv
 
