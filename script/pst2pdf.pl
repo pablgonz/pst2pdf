@@ -2,7 +2,7 @@
 use v5.26;
 
 ############################# LICENCE ##################################
-# v0.21 2020-09-19 simplify the use of PSTricks with pdf              #
+# v0.21 2020-09-22 simplify the use of PSTricks with pdf               #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
 #     Pablo González L <pablgonz@yahoo.com>                            #
 #                                                                      #

@@ -76,6 +76,9 @@ function update_tag(file, content, tagname, tagdate)
     local scriptd = string.gsub(scriptd, "/", "-")
     local scriptv = "v"..scriptv
     content = string.gsub(content,
+                          "# v%d+.%d+%a* %d%d%d%d%-%d%d%-%d%d (.-)",
+                          "# "..scriptv.." "..scriptd.." %1")
+    content = string.gsub(content,
                           "(my %$date %s* = ')(.-)';",
                           "%1"..scriptd.."';")
     content = string.gsub(content,
