@@ -34,7 +34,11 @@ use autodie;
 use Config;
 use Cwd;
 use if $^O eq 'MSWin32', 'Win32';
-use if $^O eq 'MSWin32', 'Win32::Console::ANSI'; # need for color :)
+use Module::Load::Conditional qw(can_load check_install requires);
+# TeX Live not provide 'Win32::Console::ANSI' need on Windows for colors
+if(check_install( module => 'Win32::Console::ANSI')) {
+    require 'Win32::Console::ANSI';
+}
 use Term::ANSIColor;
 
 ### Internal vars
@@ -91,12 +95,12 @@ ${copyright}
 END_VERSION
 
 ### Standart info in terminal
-my $title = "$scriptname $nv - Running a PSTricks document with (pdf/xe/lua)latex [HV \& PG]\n";
+my $title = "$scriptname $nv - Running a PSTricks document with (pdf/xe/lua)latex\n";
 
 ### Log vars
 my $LogFile = "$scriptname.log";
 my $LogWrite;
-my $LogTime = strftime("%y/%m/%d %H:%M:%S", localtime);
+my $LogTime = strftime("%y-%m-%d %H:%M:%S", localtime);
 
 ### Error in command line
 sub errorUsage {
@@ -163,7 +167,7 @@ sub Infocolor {
 ### Write Log line and print msg (common)
 sub Infoline {
     my $msg = shift;
-    my $now = strftime("%y/%m/%d %H:%M:%S", localtime);
+    my $now = strftime("%y-%m-%d %H:%M:%S", localtime);
     if ($log) { $LogWrite->print(sprintf "[%s] * %s\n", $now, $msg); }
     say $msg;
     return;
@@ -179,7 +183,7 @@ sub Logline {
 ### Write Log line (time stamp)
 sub Log {
     my $msg = shift;
-    my $now = strftime("%y/%m/%d %H:%M:%S", localtime);
+    my $now = strftime("%y-%m-%d %H:%M:%S", localtime);
     if ($log) { $LogWrite->print(sprintf "[%s] * %s\n", $now, $msg); }
     return;
 }
@@ -203,7 +207,7 @@ sub Logarray {
 ### Extended print info for execute system commands using $ command
 sub Logrun {
     my $msg = shift;
-    my $now = strftime("%y/%m/%d %H:%M:%S", localtime);
+    my $now = strftime("%y-%m-%d %H:%M:%S", localtime);
     if ($log) { $LogWrite->print(sprintf "[%s] \$ %s\n", $now, $msg); }
     return;
 }
