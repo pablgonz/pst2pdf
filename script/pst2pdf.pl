@@ -4,7 +4,7 @@ use v5.26;
 ############################# LICENCE ##################################
 # v0.21 2020-09-22 simplify the use of PSTricks with pdf               #
 # (c) Herbert Voss <hvoss@tug.org>                                     #
-#     Pablo González L <pablgonz@yahoo.com>                            #
+#     Pablo González <pablgonz@yahoo.com>                              #
 #                                                                      #
 # This program is free software; you can redistribute it and/or modify #
 # it under the terms of the GNU General Public License as published by #
@@ -256,21 +256,25 @@ find_ghostscript();
 
 my $usage = <<"END_OF_USAGE";
 ${title}
-   pst2pdf is a Perl script which isolates all PostScript or PSTricks related
-   parts of the TeX document, read all postscript, pspicture, psgraph and
-   PSTexample environments, extract source code in standalone files and
-   converting them into image format. Create new file with all extracted
-   environments converted to \\includegraphics and runs (pdf/xe/lua)latex.
+  pst2pdf is a Perl script which isolates all *PostScript* or *PSTricks*
+  related parts of the LaTeX document, read all *postscript*, *pspicture*,
+  *psgraph* and *PSTexample* environments, extract source code in stand-
+  alone files and converting them into image format. Create texfile-pdf
+  with all extracted environments converted to \\includegraphics and runs
+  (pdf/xe/lua)latex.
 
 Usage: $scriptname [<options>] <texfile>[.tex|.ltx]
-       $scriptname <texfile>[.tex|.ltx] [options]
 
-   If used without [<options>] the extracted environments are saved in
-   standalone files and converted to pdf image format in the "./images"
-   directory using "latex>dvips>ps2pdf" and "preview" package to process
-   <texfile> and "pdflatex" for compiler <texfile-pdf>.
+  If used without [<*options*>] the extracted environments are converted
+  standalone files and *pdf* image format and saved in "./images" directory
+  using "latex>dvips>ps2pdf" and *preview* package for process texfile and
+  "pdflatex" for texfile-pdf.
 
 Options:
+  Options that accept a value require either a blank space or "=" between
+  the option and the value. Multiple short options can be bundling and
+  relative or absolute paths for directories and files is not supported.
+
                                                                  [default]
   -l, --log          Write .log file with debug information      [off]
   -h, --help         Display command line help and exit          [off]
@@ -285,27 +289,27 @@ Options:
   -P, --ppm          Create .ppm files using poppler-utils       [pdftoppm]
   -g, --gray         Gray scale for images using ghostscript     [off]
   -f, --force        Try to capture \\psset{...} to extract       [off]
-  -x, --xetex        Using xelatex for compiler input and output [off]
-  -ns, --nosource    Do not create standalone files              [off]
-  -np, --noprew, --single
+  --nopdf            Do not create images in pdf format          [off]
+  --nocrop           Does not run pdfcrop                        [off]
+  -np, --noprew
                      Create images files without preview package [off]
-  -ni, --norun, --noimages
+  -ni, --norun
                      Generate file-pdf.tex, but not images       [off]
-  -d <integer>, --dpi <integer>
-                     Dots per inch resolution for images         [150]
-  -r <integer>, --runs <integer>
+  -ns, --nosource    Do not create standalone files              [off]
+  -r <integer>, --runs=<integer>
                      Set the number of times the compiler will
                      run on the input file for extraction        [1]
-  -m <integer>, --margins <integer>
+  -d <integer>, --dpi=<integer>
+                     Dots per inch resolution for images         [150]
+  -m <integer>, --margins=<integer>
                      Set margins in bp for pdfcrop               [0]
-  --myverb <macro>   Add "\\macroname" to verbatim inline search  [myverb]
-  --ignore <environment>
+  --imgdir=<dirname> Set name of directory to save images/files  [images]
+  --myverb=<macro>   Add "\\macroname" to verbatim inline search  [myverb]
+  --ignore=<environment>
                      Add "environment" to verbatim environments  [empty]
   --srcenv           Create files with only code environment     [off]
   --shell            Enable \\write18\{SHELL COMMAND\}              [off]
-  --nopdf            Do not create images in pdf format          [off]
-  --nocrop           Does not run pdfcrop                        [off]
-  --imgdir <dirname> Set name of directory to save images/files  [images]
+  -x, --xetex        Using xelatex for compiler input and output [off]
   --luatex           Using dvilualatex>dvips>ps2pdf for compiler
                      input and lualatex for compiler output file [off]
   --arara            Use arara for compiler output file          [off]
@@ -316,13 +320,14 @@ Options:
   --biber            Run biber on the .bcf file (if exists)      [off]
 
 Example:
-\$ $scriptname -e -p --imgdir pics test.tex
-* Create a ./pics directory (if it doesn't exist) with all extracted
-* environments converted to individual files (.pdf, .eps, .png, .tex),
-* a file test-fig-all.tex with all extracted environments and the file
-* test-pdf.tex with all environments converted to \\includegraphics using
-* latex>dvips>ps2pdf and preview package for <test.tex> and pdflatex
-* for <test-pdf.tex>.
+\$ $scriptname -e -p --imgdir pics test.ltx
+
+  Create a "./pics" directory (if it doesn't exist) with all extracted
+  environments converted to images (.pdf, .eps, .png) and standalone files
+  (.ltx), a file test-fig-all.ltx with all extracted environments and the
+  file test-pdf.tex with all environments converted to \includegraphics
+  using "latex>dvips>ps2pdf" and "preview" package for test.ltx and
+  "pdflatex" for test-pdf.ltx.
 
 See texdoc pst2pdf for full documentation.
 END_OF_USAGE
@@ -1219,7 +1224,6 @@ my ($preamble,$bodydoc,$enddoc) = $document =~ m/\A (.+?) (\\begin\{document\} .
 ### Hash for reverse changes for extract and <output file>
 my %changes_out = (
     '\PSSET'            => '\psset',
-    '\TIKZSET'          => '\tikzset',
     '\TRICKS'           => '\pspicture',
     '\ENDTRICKS'        => '\endpspicture',
     '\PSGRAPHTRICKS'    => '\psgraph',
@@ -2304,3 +2308,216 @@ Infocolor('Finish', "The execution of $scriptname has been successfully complete
 Log("The execution of $scriptname has been successfully completed");
 
 __END__
+=encoding UTF-8
+
+=head1 NAME
+
+pst2pdf - Running a PSTricks document with (pdf/xe/lua)latex
+
+=head1 SYNOPSIS
+
+B<pst2pdf> [E<lt>I<options>E<gt>] E<lt>I<texfile>E<gt>.I<tex>|I<ltx>
+
+=head1 DESCRIPTION
+
+B<pst2pdf> is a Perl script which isolates all I<PostScript> or I<PSTricks> related
+parts of the LaTeX document, read all I<postscript>, I<pspicture>, I<psgraph> and
+I<PSTexample> environments, extract source code in stand alone files and
+converting them into image format. Create F<texfile-pdf> with all extracted
+environments converted to \includegraphics and runs (pdf/xe/lua)latex.
+
+=head1 OPTIONS
+
+Options that accept a value require either a blank space or C<=> between
+the option and the value. Multiple short options can be bundling and
+relative or absolute paths for directories and files is not supported.
+
+If used without [E<lt>I<options>E<gt>] the extracted environments are converted
+to I<pdf> image format and I<standalone> files and saved in C<./images> directory using C<latexE<gt>dvipsE<gt>ps2pdf>
+and I<preview> package for process F<texfile> and C<pdflatex> for F<texfile-pdf>.
+
+General script options:
+
+=over 4
+
+=item B<-l>, B<--log>
+
+Write C<.log> file with debug information.
+
+=item B<-h>, B<--help>
+
+Display command line help and exit.
+
+=item B<-v>, B<--version>
+
+Display current version and exit.
+
+=item B<-V>, B<--verbose>
+
+Verbose printing information.
+
+=item B<-t>, B<--tif>
+
+Create C<.tif> files using I<ghostscript>.
+
+=item B<-b>, B<--bmp>
+
+Create C<.bmp> files using I<ghostscript>.
+
+=item B<-j>, B<--jpg>
+
+Create C<.jpg> files using I<ghostscript>.
+
+=item B<-p>, B<--png>
+
+Create C<.png> files using I<ghostscript>.
+
+=item B<-e>, B<--eps>
+
+Create C<.eps> files using I<pdftops>.
+
+=item B<-s>, B<--svg>
+
+Create C<.svg> files using I<pdftocairo>.
+
+=item B<-P>, B<--ppm>
+
+Create C<.ppm> files using I<pdftoppm>.
+
+=item B<-g>, B<--gray>
+
+Gray scale for images using I<ghostscript>.
+
+=item B<-f>, B<--force>
+
+Capture C<\psset> to extract.
+
+=item B<--nopdf>
+
+Don't create a C<.pdf> image files.
+
+=item B<--nocrop>
+
+Don't run I<pdfcrop>.
+
+=item B<-np>, B<--noprew>
+
+Create images files without I<preview> package.
+
+=item B<-ni>, B<--norun>
+
+Generate F<texfile-pdf> and standalone files, but not images.
+
+=item B<-ns>, B<--nosource>
+
+Do not create standalone files.
+
+=item B<-r> I<integer>, B<--runs>=I<integer>
+
+Set the number of times the compiler will run on the F<texfile> for
+environment extraction (default: 1).
+
+=item B<-d> I<integer>, B<--dpi>=I<integer>
+
+Dots per inch resolution for images (default: 150).
+
+=item B<-m> I<integer>, B<--margins>=I<integer>
+
+Set margins in bp for I<pdfcrop> (default: 0).
+
+=item B<--imgdir>=I<dirname>
+
+Set name of directory to save images and standalone files (default: images).
+
+=item B<--myverb>=I<macroname>
+
+Add C<\macroname> to verbatim inline search (default: myverb).
+
+=item B<--ignore>=I<environment>
+
+Add a new I<environment> to verbatim environments.
+
+=item B<--srcenv>
+
+Create files with only code of environments.
+
+=item B<--shell>
+
+Enable C<\write18{SHELL COMMAND}>.
+
+=item B<-x>, B<--xetex>
+
+Using C<xelatex> for compiler F<texfile> and F<texfile-pdf>.
+
+=item B<--luatex>
+
+Using C<dvilualatexE<gt>dvipsE<gt>ps2pdf> for compiler F<texfile> and C<lualatex> for
+compiler F<texfile-pdf>.
+
+=item B<--arara>
+
+Use C<arara> for compiler F<texfile-pdf>.
+
+=item B<--latexmk>
+
+Using C<latexmk> for compiler F<texfile-pdf>.
+
+=item B<--zip>
+
+Compress files generated in C<.zip> format.
+
+=item B<--tar>
+
+Compress files generated in C<.tar.gz> format.
+
+=item B<--bibtex>
+
+Run C<bibtex> on the C<.aux> file (if exists).
+
+=item B<--biber>
+
+Run C<biber> on the C<.bfc> file (if exists).
+
+=back
+
+=head1 EXAMPLE
+
+B<pst2pdf> -e -p --imgdir pics test.ltx
+
+Create a C<./pics> directory (if it doesn't exist) with all extracted
+environments converted to images (.pdf, .eps, .png) and standalone files
+(.ltx), a file F<test-fig-all.ltx> with all extracted environments and
+the file F<test-pdf.tex> with all environments converted to \includegraphics
+using C<latexE<gt>dvipsE<gt>ps2pdf> and I<preview> package for F<test.ltx> and C<pdflatex>
+for F<test-pdf.ltx>.
+
+=head1 DOCUMENTATION
+
+For full documentation use:
+
+B<texdoc> pst2pdf
+
+=head1 AUTHORS
+
+Herbert Voss, L<hvoss@tug.org> and Pablo González, L<pablgonz@yahoo.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2007-2021 Herbert Voss and Pablo González.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+=head1 SEE ALSO
+
+gs(1), dvips(1), ps2pdf(1), pdfcrop(1), pdftops(1), pdftocairo(1), pdftoppm(1)
+
+=cut
+

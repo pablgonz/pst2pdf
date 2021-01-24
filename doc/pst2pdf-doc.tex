@@ -1054,43 +1054,43 @@ the name of the \meta[cf=optcolor]{input file}, the order of specifying the opti
 Options that accept a \meta{value} require either a blank space \verb*| | or \textcolor{optcolor}{\bfseries\texttt{=}}
 between the option and the \meta{value}. Some short options can be bundling.
 
-\DescribeCmd[h]{help}{bolean}{off}
+\DescribeCmd[h]{help}{boolean}{off}
 Display a command line help and exit.
 
-\DescribeCmd[l]{log}{bolean}{off}
+\DescribeCmd[l]{log}{boolean}{off}
 Write a \LFile{pst2pdf.log} file with all process information.
 
-\DescribeCmd[v]{version}{bolean}{off}
+\DescribeCmd[v]{version}{boolean}{off}
 Display the current version (\fileversion) and exit.
 
-\DescribeCmd[V]{verbose}{bolean}{off}
+\DescribeCmd[V]{verbose}{boolean}{off}
 Show verbose information of process in terminal.
 
 \DescribeCmd[d]{dpi}{integer}{150}
 Dots per inch for images files. Values are positive integers less than or equal to 2500.
 
-\DescribeCmd[t]{tif}{bolean}{off}
+\DescribeCmd[t]{tif}{boolean}{off}
 Create a \Lext{tif} images files using \Lprog{Ghostscript}.
 
-\DescribeCmd[b]{bmp}{bolean}{off}
+\DescribeCmd[b]{bmp}{boolean}{off}
 Create a \Lext{bmp} images files using \Lprog{Ghostscript}.
 
-\DescribeCmd[j]{jpg}{bolean}{off}
+\DescribeCmd[j]{jpg}{boolean}{off}
 Create a \Lext{jpg} images files using \Lprog{Ghostscript}.
 
-\DescribeCmd[p]{png}{bolean}{off}
+\DescribeCmd[p]{png}{boolean}{off}
 Create a \Lext{png} transparent image files using \Lprog{Ghostscript}.
 
-\DescribeCmd[e]{eps}{bolean}{off}
+\DescribeCmd[e]{eps}{boolean}{off}
 Create a \Lext{eps} image files using \Lprog{pdftops}.
 
-\DescribeCmd[s]{svg}{bolean}{off}
+\DescribeCmd[s]{svg}{boolean}{off}
 Create a \Lext{svg} image files using \Lprog{pdftocairo}.
 
-\DescribeCmd[P]{ppm}{bolean}{off}
+\DescribeCmd[P]{ppm}{boolean}{off}
 Create a \Lext{ppm} image files using \Lprog{pdftoppm}.
 
-\DescribeCmd[g]{gray}{bolean}{off}
+\DescribeCmd[g]{gray}{boolean}{off}
 Create a gray scale for all images using \Lprog{Ghostscript}. The line behind this options is:
 
 \begin{examplecmd}
@@ -1098,13 +1098,13 @@ Create a gray scale for all images using \Lprog{Ghostscript}. The line behind th
                       -sColorConversionStrategy=Gray -dProcessColorModel=/DeviceGray
 \end{examplecmd}
 
-\DescribeCmd[f]{force}{bolean}{off}
+\DescribeCmd[f]{force}{boolean}{off}
 Try to capture \lstinline|\psset|\marg[type=tt]{code} to extract.
 When using the \cmdopt{force} option the script will try to capture \lstinline|\psset|\marg[type=tt]{code} and
 leave it inside the \Lenv{preview} environment, any line that is between \lstinline|\psset|\marg[type=tt]{code} and
 \lstinline|\begin{pspicture}| will be captured.
 
-\DescribeCmd[np]{noprew}{bolean}{off}
+\DescribeCmd[np]{noprew}{boolean}{off}
 Create images files without \LPack{preview} package. The \lstinline|\begin{preview}|\ldots \lstinline|\end{preview}|
 lines are only used as delimiters for extracting the content \emph{without} using the package \LPack{preview}.
 Using this option \emph{\enquote{only}} the extracted environments are processed and not the whole \meta[cf=optcolor]{input file}, sometimes
@@ -1128,56 +1128,60 @@ Add a verbatim environment to internal list.
 Set the name of directory for save generated files. Only the \meta{name} of directory
 must be passed \emph{without} relative or absolute paths.
 
-\DescribeCmd{srcenv}{bolean}{off}
+\DescribeCmd{srcenv}{boolean}{off}
 Create separate files with \emph{\enquote{only code}} for all extracted
 environments.
 
-\DescribeCmd{shell}{bolean}{off}
+\DescribeCmd{shell}{boolean}{off}
 Enable \Lcs{write18}\meta{shell command}.
 
-\DescribeCmd[ni]{norun}{bolean}{off}
+\DescribeCmd[ni]{norun}{boolean}{off}
 Execute the script, but do not create image files. This option is designed to
 to generate standalone files or used in conjunction with \cmdopt{srcenv} and to
 debug the \meta[cf=optcolor]{output file}. Alternative name \cmdopt{noimages}.
 
-\DescribeCmd{nopdf}{bolean}{off}
+\DescribeCmd{nopdf}{boolean}{off}
 Don't create a \Lext{pdf} image files.
 
-\DescribeCmd{nocrop}{bolean}{off}
+\DescribeCmd{nocrop}{boolean}{off}
 Don't run \Lscript{pdfcrop} in image files.
 
-\DescribeCmd[ns]{nosource}{bolean}{off}
+\DescribeCmd[ns]{nosource}{boolean}{off}
 Don't create standalone files.
 
-\DescribeCmd[x]{xetex}{bolean}{off}
+\DescribeCmd[x]{xetex}{boolean}{off}
 Using \Lprog{xelatex} compiler \meta[cf=optcolor]{input file} and \meta[cf=optcolor]{output file}.
+In the execution \Lprog{xelatex} is called with the \prgopt*{no-pdf} option
+generating a \Lext{xvd} file and then it is processed using \Lprog{xdvipdfmx},
+this is only to execute \emph{faster} the conversion of environments to images
+and it is only done on the \meta[cf=optcolor]{input file}.
 
-\DescribeCmd{luatex}{bolean}{off}
+\DescribeCmd{luatex}{boolean}{off}
 Using \Lprog{dvilualatex}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lprog{dvips}\textcolor{optcolor}{\texttt{\bfseries\guillemotright}}\Lscript{ps2pdf}
 for compiler \meta[cf=optcolor]{input file} and \Lprog{lualatex} for \meta[cf=optcolor]{output file}.
 
-\DescribeCmd{arara}{bolean}{off}
+\DescribeCmd{arara}{boolean}{off}
 Use \Lprog{arara}\footnote{\url{https://ctan.org/pkg/arara}} tool for compiler \meta[cf=optcolor]{output file}.
 This option is designed to full process \meta[cf=optcolor]{output file}, is mutually
 exclusive with \cmdopt{latexmk} option.
 
-\DescribeCmd{latexmk}{bolean}{off}
+\DescribeCmd{latexmk}{boolean}{off}
 Using \Lscript{latexmk}\footnote{\url{https://www.ctan.org/pkg/latexmk}} for process \meta[cf=optcolor]{output file}.
 This option is designed to full process \meta[cf=optcolor]{output file}, is mutually exclusive with \cmdopt{arara}.
 
-\DescribeCmd{zip}{bolean}{off}
+\DescribeCmd{zip}{boolean}{off}
 Compress the files generated by the script in \texttt{./images} in \Lext{zip} format.
 Does not include \meta[cf=optcolor]{output file}.
 
-\DescribeCmd{tar}{bolean}{off}
+\DescribeCmd{tar}{boolean}{off}
 Compress the files generated by the script in \texttt{./images} in \Lext{tar.gz} format.
 Does not include \meta[cf=optcolor]{output file}.
 
-\DescribeCmd{bibtex}{bolean}{off}
+\DescribeCmd{bibtex}{boolean}{off}
 Run \Lprog{bibtex} on the \Lext{aux} file (if exists), is mutually
 exclusive with \cmdopt{biber} option.
 
-\DescribeCmd{biber}{bolean}{off}
+\DescribeCmd{biber}{boolean}{off}
 Run \Lprog{biber} on the \Lext{bcf} file (if exists), is mutually
 exclusive with \cmdopt{bibtex} option.
 

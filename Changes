@@ -1,4 +1,8 @@
 pst2pdf.pl --------
+0.21  2021-01-23  - Fix module detection on TeX Live (windows)
+                  - Fix typo in documentation
+                  - Add POD and man documentation
+                  - The --xetex option now uses xelatex>xdvipdfmx
 0.20  2020-08-22  - Fix graphicx detection
                   - Fix typo in documentation
                   - Remove unused vars
