@@ -34,10 +34,10 @@ use autodie;
 use Config;
 use Cwd;
 use if $^O eq 'MSWin32', 'Win32';
-use Module::Load::Conditional qw(can_load check_install requires);
-# TeX Live not provide 'Win32::Console::ANSI' need on Windows for colors
-if(check_install( module => 'Win32::Console::ANSI')) {
-    require 'Win32::Console::ANSI';
+use if $^O eq 'MSWin32', 'Module::Load::Conditional' => qw(can_load check_install requires);
+# Need on Windows cmd for colors, TeX Live not provide 'Win32::Console::ANSI'
+if($^O eq 'MSWin32' && check_install( module => 'Win32::Console::ANSI')) {
+    require Win32::Console::ANSI;
 }
 use Term::ANSIColor;
 
